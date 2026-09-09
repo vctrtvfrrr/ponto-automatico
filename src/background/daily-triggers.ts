@@ -4,8 +4,8 @@ import { ensureTriggerAlarms, handleTriggerAlarm } from './trigger-alarms.ts'
 
 const NEXT_DAY_ALARM = 'plan-next-day'
 
-// The queue only serializes storage operations; every decision reloads its state
-// from persistent storage after a worker or browser restart.
+// Serializing planning and Attempts prevents duplicate draws and lost writes.
+// The queue holds no decision state; each operation reloads persistent storage.
 let pending: Promise<void> = Promise.resolve()
 
 export function getTodayTriggers(): Promise<DailyTriggers> {
