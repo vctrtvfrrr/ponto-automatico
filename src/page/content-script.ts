@@ -1,13 +1,13 @@
 import { loadAutomation } from '../automation/storage.ts'
 import { decideAttempt } from '../triggers/attempt.ts'
 import { decidePunch, interruptedAttempt } from '../triggers/punch.ts'
-import { CLICK_PUNCH, READ_REGISTRATION, READ_WORK_DAY, type ClickPunchMessage, type ClickPunchResponse, type PageMessage } from './messages.ts'
-import { decideRegistration, type PageObservation, type RegistrationObservation } from './observation.ts'
+import { CLICK_PUNCH, READ_REGISTRATION, READ_WORK_DAY, type ClickPunchMessage, type ClickPunchResponse, type PageMessage, type ReadWorkDayResponse } from './messages.ts'
+import { decideRegistration, type RegistrationObservation } from './observation.ts'
 import { findPunchButton, isLoginPage, readWorkDay } from './readers.ts'
 
 let clickConsumed = false
 
-chrome.runtime.onMessage.addListener((message: PageMessage, _sender, sendResponse: (response: PageObservation | RegistrationObservation | ClickPunchResponse) => void) => {
+chrome.runtime.onMessage.addListener((message: PageMessage, _sender, sendResponse: (response: ReadWorkDayResponse | RegistrationObservation | ClickPunchResponse) => void) => {
   if (message?.type === READ_REGISTRATION) {
     sendResponse(readRegistration())
     return
@@ -23,11 +23,11 @@ chrome.runtime.onMessage.addListener((message: PageMessage, _sender, sendRespons
   }
   if (message?.type !== READ_WORK_DAY || typeof message.date !== 'string') return
   if (isLoginPage(document)) {
-    sendResponse({ status: 'login' })
+    sendResponse({ status: 'login', observedAt: Date.now() })
     return
   }
   const workDay = location.pathname === '/meu-ponto' ? readWorkDay(document, message.date, new Date()) : undefined
-  sendResponse(workDay ? { status: 'read', workDay } : { status: 'unreadable' })
+  sendResponse(workDay ? { status: 'read', workDay, observedAt: Date.now() } : { status: 'unreadable', observedAt: Date.now() })
 })
 
 function readRegistration(): RegistrationObservation {

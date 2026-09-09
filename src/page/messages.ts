@@ -5,6 +5,7 @@ import type { PageObservation } from './observation.ts'
 
 export const READ_WORK_DAY = 'read-work-day'
 export type ReadWorkDayMessage = { type: typeof READ_WORK_DAY; date: string }
+export type ReadWorkDayResponse = PageObservation & { observedAt: number }
 
 export const READ_REGISTRATION = 'read-registration'
 export const CLICK_PUNCH = 'click-punch'
@@ -20,4 +21,4 @@ export type PageMessage = ReadWorkDayMessage | { type: typeof READ_REGISTRATION 
 
 export const GET_TODAY_WORK_DAY = 'get-today-work-day'
 export type WorkDaySnapshot = { observedAt: number; workDay: WorkDay }
-export type TodayWorkDayResponse = (PageObservation & { observedAt: number }) | { error: string }
+export type TodayWorkDayResponse = ReadWorkDayResponse | { error: string }

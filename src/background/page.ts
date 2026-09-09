@@ -1,5 +1,5 @@
-import { CLICK_PUNCH, READ_REGISTRATION, READ_WORK_DAY, type ClickPunchMessage, type ClickPunchResponse, type ReadWorkDayMessage, type WorkDaySnapshot } from '../page/messages.ts'
-import { decidePageObservation, decideRegistration, type PageObservation, type RegistrationObservation } from '../page/observation.ts'
+import { CLICK_PUNCH, READ_REGISTRATION, READ_WORK_DAY, type ClickPunchMessage, type ClickPunchResponse, type ReadWorkDayMessage, type ReadWorkDayResponse, type WorkDaySnapshot } from '../page/messages.ts'
+import { decidePageObservation, decideRegistration, type RegistrationObservation } from '../page/observation.ts'
 import type { WorkDay } from '../page/readers.ts'
 import type { Trigger } from '../triggers/plan.ts'
 import { decideConfirmation, decidePunch, interruptedAttempt, type PunchOutcome } from '../triggers/punch.ts'
@@ -12,18 +12,18 @@ export async function observeWorkDay(
   date: string,
   deadline = Date.now() + PAGE_TIMEOUT_MS,
   trackTab?: (tabId: number) => Promise<void>,
-): Promise<PageObservation & { observedAt: number }> {
+): Promise<ReadWorkDayResponse> {
+  if (Date.now() >= deadline) return { status: 'unreadable', observedAt: Date.now() }
   let tabId: number | undefined
   try {
     const tab = await chrome.tabs.create({ url: 'https://app2.pontomais.com.br/meu-ponto', active: false })
     tabId = tab.id!
     await trackTab?.(tabId)
-    const observation = await withinDeadline(waitForWorkDay(tabId, date, deadline), deadline, { status: 'unreadable' } as PageObservation)
-    const observedAt = Date.now()
+    const observation = await withinDeadline<ReadWorkDayResponse>(waitForWorkDay(tabId, date, deadline), deadline, { status: 'unreadable', observedAt: Date.now() })
     if (observation.status === 'read') {
-      await chrome.storage.local.set({ latestWorkDay: { workDay: observation.workDay, observedAt } satisfies WorkDaySnapshot })
+      await chrome.storage.local.set({ latestWorkDay: { workDay: observation.workDay, observedAt: observation.observedAt } satisfies WorkDaySnapshot })
     }
-    return { ...observation, observedAt }
+    return observation
   } catch {
     return { status: 'unreadable', observedAt: Date.now() }
   } finally {
@@ -79,7 +79,7 @@ export async function performPunch(
 export async function closeAttemptTab(tabId: number): Promise<void> {
   try {
     const tab = await chrome.tabs.get(tabId)
-    if (tab.url?.startsWith('https://app2.pontomais.com.br/')) await chrome.tabs.remove(tabId)
+    if ((tab.pendingUrl ?? tab.url)?.startsWith('https://app2.pontomais.com.br/')) await chrome.tabs.remove(tabId)
   } catch {
     // The user may have already closed the Attempt's tab.
   }
@@ -111,11 +111,11 @@ async function waitForRegistration(tabId: number, deadline: number): Promise<Reg
   return 'missing'
 }
 
-async function waitForWorkDay(tabId: number, date: string, deadline: number): Promise<PageObservation> {
+async function waitForWorkDay(tabId: number, date: string, deadline: number): Promise<ReadWorkDayResponse> {
   while (Date.now() < deadline) {
     await chrome.tabs.get(tabId)
     try {
-      const observation: PageObservation = await chrome.tabs.sendMessage(tabId, {
+      const observation: ReadWorkDayResponse = await chrome.tabs.sendMessage(tabId, {
         type: READ_WORK_DAY, date,
       } satisfies ReadWorkDayMessage, { frameId: 0 })
       if (Date.now() < deadline && (observation?.status === 'read' || observation?.status === 'login')) return observation
@@ -124,5 +124,5 @@ async function waitForWorkDay(tabId: number, date: string, deadline: number): Pr
     }
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
   }
-  return { status: 'unreadable' }
+  return { status: 'unreadable', observedAt: Date.now() }
 }
