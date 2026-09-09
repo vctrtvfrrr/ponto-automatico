@@ -10,8 +10,11 @@ Estrutura de DOM capturada da página real logada, em resposta à issue #3. Nenh
 | --- | --- | --- |
 | `register-widget.html` | `https://app2.pontomais.com.br/registrar-ponto` | 2026-09-09T11:43:45Z |
 | `my-point-table.html` | `https://app2.pontomais.com.br/meu-ponto` | 2026-09-09T11:49:22Z |
+| `login-form.html` | `https://app2.pontomais.com.br/login` | 2026-09-09T20:21:32Z |
 
 Coletados pelo console do DevTools na sessão logada, via `outerHTML` do elemento. Inspecionar o DOM não cria Marcação nenhuma.
+
+A captura de `login-form.html` foi feita com Playwright em um contexto novo do Chromium, sem sessão. Abrir `/meu-ponto` redirecionou para `/login`. O arquivo contém o `outerHTML` real de `login-form`, sem alterações de estrutura ou valores. Os campos estavam vazios. Esse componente distingue o login do campo de PIN presente em `register-widget.html`.
 
 ## Derivação
 
@@ -43,6 +46,10 @@ Cada arquivo abre com um comentário HTML repetindo isso, para que a informaçã
 **A grid é DevExpress.** `dx-data-grid#gridContainer`, linhas em `tr.dx-data-row`, colunas endereçadas por `aria-colindex`. Os ids `dx-col-NN` e `dx-<uuid>` são gerados por render. A leitura deve resolver o índice da coluna pelo cabeçalho (`td[aria-label="Coluna Entrada/Saída"]`) e só então aplicar esse índice às linhas de dados — sobrevive a reordenação de coluna, que um índice fixo não sobrevive.
 
 **A célula de data não tem ano, e a ordem das linhas não prova qual dia é hoje.** A célula traz `" ter - 03/03 "`. Compor o ano corrente não prova o período consultado, e a primeira linha não é necessariamente o dia atual: uma página aberta antes da meia-noite continua mostrando a Jornada anterior. O leitor tem de confirmar que a linha corresponde à data pretendida e **abortar quando não conseguir identificar a Jornada inequivocamente** — decidir com a Jornada errada pula uma Marcação necessária ou duplica uma existente.
+
+Na implementação da issue #8, o usuário confirmou que o filtro padrão cobre os últimos 30 dias e autorizou inferir o ano desse intervalo. A extensão abre uma aba nova em `/meu-ponto`, mantém o filtro padrão e busca a data do Gatilho. A inferência usa o calendário local e também cobre a virada do ano. Uma data ausente, fora do intervalo ou repetida impede a leitura.
+
+Os testes usam as capturas como base. Alterações de datas, atributos, colunas e duplicação de elementos são perturbações controladas para testar a inferência e a rejeição de ambiguidades. Esses casos não representam novas capturas do site.
 
 ## Lacunas conhecidas
 

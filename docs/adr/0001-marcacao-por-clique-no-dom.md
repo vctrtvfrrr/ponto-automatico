@@ -23,4 +23,6 @@ Achar o botão não basta. A pesquisa da issue #3 registra duas condições que 
 
 A resposta do registro é `202 Accepted`, não `201 Created`: o servidor aceita a Marcação para processamento e não afirma que ela existe. "Cliquei" nunca é prova de "registrou" — a confirmação relê a lista do dia.
 
+Na issue #8, o usuário confirmou que `/meu-ponto` usa os últimos 30 dias como filtro padrão e não exibe o ano. Ele autorizou inferir o ano a partir desse intervalo. A leitura usa uma aba nova, sem alterar os filtros, e exige uma única linha correspondente à data do Gatilho. Uma Jornada ausente ou ambígua continua sendo motivo para abortar.
+
 A permissão de host declarada no manifest cobre apenas `app2.pontomais.com.br` e é suficiente exatamente porque esta decisão vale: a extensão fala com a página, não com a API, que vive em `api.pontomais.com.br`.
