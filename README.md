@@ -15,6 +15,18 @@ Em `chrome://extensions`, ligue o **Modo do desenvolvedor**, clique em **Carrega
 
 O Modo do desenvolvedor precisa continuar ligado: o Chrome remove extensões descompactadas na inicialização quando ele está desligado.
 
+## CI e download da extensão
+
+O workflow executa `npm test` em todo push. Na branch `main`, após os testes passarem, ele executa `npm run build` e disponibiliza o artefato `ponto-automatico-chrome`.
+
+1. Na aba **Actions** do Gitea, abra uma execução bem-sucedida da `main`.
+2. Baixe o ZIP do artefato `ponto-automatico-chrome`.
+3. Extraia o ZIP para uma pasta permanente.
+4. Em `chrome://extensions`, ative o **Modo do desenvolvedor**.
+5. Clique em **Carregar sem compactação** e selecione a pasta extraída que contém `manifest.json`.
+
+O workflow usa Node.js 24 e precisa de um runner Linux com o rótulo `ubuntu-latest`.
+
 ## Comandos
 
 | Comando | O que faz |
