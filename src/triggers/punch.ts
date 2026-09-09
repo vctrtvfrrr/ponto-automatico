@@ -1,9 +1,11 @@
 import type { WorkDay } from '../page/readers.ts'
-import type { PageObservation } from '../page/observation.ts'
+import type { PageDecision, PageObservation, RegistrationDecision } from '../page/observation.ts'
+import type { AttemptDecision } from './attempt.ts'
 import { localDate, type Trigger } from './plan.ts'
 
 export type PunchDecision =
-  | { result: 'click' | 'already-filled'; workDay: WorkDay }
+  | { result: 'click'; workDay: WorkDay }
+  | { result: 'already-filled'; workDay: WorkDay }
   | { result: 'schedule-unavailable' | 'date-changed'; notification: string }
 
 export function decidePunch(trigger: Trigger, workDay: WorkDay, now: Date): PunchDecision {
@@ -29,6 +31,21 @@ export type ConfirmationDecision =
   | { result: 'confirmed'; workDay: WorkDay }
   | { result: 'confirming' }
   | { result: 'unconfirmed'; notification: string }
+
+export type PunchOutcome =
+  | Exclude<AttemptDecision, { result: 'wait' | 'ready' }>
+  | PageDecision
+  | Exclude<PunchDecision, { result: 'click' }>
+  | Exclude<RegistrationDecision, { result: 'ready' }>
+  | Exclude<ConfirmationDecision, { result: 'confirming' }>
+  | { result: 'interrupted' | 'stale-observation'; notification: string }
+
+export function interruptedAttempt(): PunchOutcome {
+  return {
+    result: 'interrupted',
+    notification: 'A Tentativa foi interrompida e não será repetida. Confira a Jornada no PontoMais antes de marcar manualmente.',
+  }
+}
 
 export function decideConfirmation(
   before: WorkDay,
