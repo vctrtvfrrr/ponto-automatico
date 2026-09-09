@@ -16,7 +16,7 @@ A extensão cria um alarme por Gatilho e recupera alarmes ausentes quando o work
 
 A janela começa no instante sorteado e inclui o instante final da tolerância configurada. Dentro dela, a Tentativa abre `/meu-ponto` em segundo plano, sem ativar a aba. Após o fechamento da janela, recebe `expired` e gera uma notificação com o motivo. A extensão grava o resultado antes de notificar e retoma notificações pendentes no próximo despertar.
 
-A leitura espera o carregamento da página e da Jornada por até 45 segundos. A aba fecha ao terminar, com sucesso ou falha. A Jornada lida inclui as Marcações feitas pelo celular ou manualmente, conforme aparecem na tabela. A extensão lê os horários completos do atributo `title`.
+A leitura espera o carregamento da página e da Jornada por até 45 segundos. Ela usa o DOM disponível, sem exigir que todos os recursos secundários terminem de carregar. A aba fecha ao terminar, com sucesso ou falha. A Jornada lida inclui as Marcações feitas pelo celular ou manualmente, conforme aparecem na tabela. A extensão lê os horários completos do atributo `title`.
 
 O resultado `read` guarda a data e os horários observados em `attempt.decision.workDay`. Ele não confirma uma nova Marcação. A tela de login produz `login-required` e uma notificação para entrar novamente no site. Uma página ilegível ou uma falha de acesso produz `page-unreadable` e uma notificação. A extensão não lê nem armazena credenciais e não faz login automático.
 

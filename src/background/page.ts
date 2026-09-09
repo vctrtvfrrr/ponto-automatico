@@ -33,16 +33,14 @@ export async function observeWorkDay(date: string): Promise<PageObservation> {
 
 async function waitForWorkDay(tabId: number, date: string, deadline: number): Promise<PageObservation> {
   while (Date.now() < deadline) {
-    const tab = await chrome.tabs.get(tabId)
-    if (tab.status === 'complete') {
-      try {
-        const observation: PageObservation = await chrome.tabs.sendMessage(tabId, {
-          type: READ_WORK_DAY, date,
-        } satisfies ReadWorkDayMessage, { frameId: 0 })
-        if (Date.now() < deadline && (observation?.status === 'read' || observation?.status === 'login')) return observation
-      } catch {
-        // Navigation can replace the document before its content script responds.
-      }
+    await chrome.tabs.get(tabId)
+    try {
+      const observation: PageObservation = await chrome.tabs.sendMessage(tabId, {
+        type: READ_WORK_DAY, date,
+      } satisfies ReadWorkDayMessage, { frameId: 0 })
+      if (Date.now() < deadline && (observation?.status === 'read' || observation?.status === 'login')) return observation
+    } catch {
+      // Navigation can replace the document before its content script responds.
     }
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
   }
