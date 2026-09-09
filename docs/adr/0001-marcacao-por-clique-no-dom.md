@@ -26,3 +26,9 @@ A resposta do registro é `202 Accepted`, não `201 Created`: o servidor aceita 
 Na issue #8, o usuário confirmou que `/meu-ponto` usa os últimos 30 dias como filtro padrão e não exibe o ano. Ele autorizou inferir o ano a partir desse intervalo. A leitura usa uma aba nova, sem alterar os filtros, e exige uma única linha correspondente à data do Gatilho. Uma Jornada ausente ou ambígua continua sendo motivo para abortar.
 
 A permissão de host declarada no manifest cobre apenas `app2.pontomais.com.br` e é suficiente exatamente porque esta decisão vale: a extensão fala com a página, não com a API, que vive em `api.pontomais.com.br`.
+
+Na implementação da issue #9, o usuário definiu o reconhecimento por proximidade: a faixa é o horário nominal da Escala mais ou menos o desvio do sorteio, com limites incluídos. A extensão guarda essa faixa junto do Gatilho. A contagem de Marcações não determina se um horário está preenchido, pois uma Marcação anterior pode faltar. Gatilhos antigos sem essa faixa abortam e notificam, sem inferir a Escala usada no sorteio.
+
+A Tentativa prepara a página de registro antes de consultar uma nova cópia da Jornada. O content script exige uma leitura feita há no máximo dois segundos antes do clique. Durante a confirmação, a página de registro permanece aberta e cada consulta da Jornada usa uma aba nova. Isso evita consultar uma tabela antiga sem atualização e preserva o envio da página de registro. O clique não será repetido, mesmo quando sua resposta se perder.
+
+O DOM não oferece uma operação atômica entre consultar a Jornada e criar a Marcação. Uma Marcação manual simultânea, ainda ausente da lista consultada, continua sendo uma limitação. A trava persistente impede que a extensão repita a mesma Tentativa após uma interrupção. Ela não coordena Marcações feitas por outros dispositivos.
