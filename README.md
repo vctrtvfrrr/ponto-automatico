@@ -2,9 +2,15 @@
 
 Extensão do Chrome que registra as Marcações do dia no PontoMais a partir de uma Escala declarada. O vocabulário do domínio está em `CONTEXT.md`; as decisões já tomadas, em `docs/adr/`.
 
-Nesta versão, a extensão guarda a Escala editada nas opções e mostra os horários sorteados de hoje e o próximo Gatilho no popup. Ela ainda não registra Marcações.
+Nesta versão, a extensão guarda a Escala e mostra os Gatilhos de hoje no popup. Cada Gatilho aciona uma Tentativa, cujo resultado fica salvo no navegador. Ela ainda não registra Marcações.
 
 O primeiro despertar do worker no dia sorteia os Gatilhos e os guarda no navegador. Reabrir o popup ou reiniciar o navegador mantém esses horários. Os horários usam o fuso da máquina.
+
+A extensão cria um alarme por Gatilho e recupera alarmes ausentes quando o worker inicia. Um alarme adicional prepara o próximo dia à meia-noite. Gatilhos pendentes do dia anterior continuam disponíveis para avaliação após um reinício.
+
+A janela começa no instante sorteado e inclui o instante final da tolerância configurada. Dentro dela, a Tentativa recebe o resultado `ready`, ainda sem criar Marcação. Após o fechamento, recebe `expired` e gera uma notificação com o motivo. A extensão grava o resultado antes de notificar e retoma notificações pendentes no próximo despertar.
+
+O armazenamento local mantém cada Gatilho e sua Tentativa na chave `trigger:AAAA-MM-DD:slot`. O resultado `ready` indica apenas que a tolerância permite prosseguir. Ele não confirma uma Marcação. A tolerância usada é a que está salva nas opções no momento da Tentativa.
 
 Alterações na Escala, no desvio ou nas Exceções após o sorteio valem a partir do dia seguinte. Uma Exceção ou um dia da semana sem horários gera um planejamento vazio, também preservado até o dia seguinte.
 

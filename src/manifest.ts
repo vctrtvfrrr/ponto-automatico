@@ -5,7 +5,7 @@ export const manifest = {
   name: 'Ponto Automático',
   description: 'Registra as Marcações do dia no PontoMais a partir da Escala declarada.',
   version: pkg.version,
-  permissions: ['storage'],
+  permissions: ['storage', 'alarms', 'notifications'],
   // activeTab is deliberately absent: it needs a user gesture, and no gesture
   // exists at the instant a Trigger fires.
   host_permissions: ['https://app2.pontomais.com.br/*'],

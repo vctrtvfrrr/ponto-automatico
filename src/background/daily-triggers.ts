@@ -1,12 +1,15 @@
 import { loadSchedule } from '../schedule/storage.ts'
 import { planToday, type DailyTriggers } from '../triggers/plan.ts'
+import { ensureTriggerAlarms, handleTriggerAlarm } from './trigger-alarms.ts'
 
-// Only this worker writes daily Triggers. The queue serializes read/draw/write;
-// the day itself always comes from persistent storage, including after a wake.
+const NEXT_DAY_ALARM = 'plan-next-day'
+
+// The queue only serializes storage operations; every decision reloads its state
+// from persistent storage after a worker or browser restart.
 let pending: Promise<void> = Promise.resolve()
 
 export function getTodayTriggers(): Promise<DailyTriggers> {
-  const result = pending.then(async () => {
+  return enqueue(async () => {
     const schedule = await loadSchedule()
     const stored = await chrome.storage.local.get('dailyTriggers')
     const previous: unknown = stored.dailyTriggers
@@ -15,10 +18,24 @@ export function getTodayTriggers(): Promise<DailyTriggers> {
     }
 
     const day = planToday(schedule, previous, new Date(), Math.random)
+    if (previous && day !== previous) await ensureTriggerAlarms(previous)
     if (day !== previous) await chrome.storage.local.set({ dailyTriggers: day })
+    await ensureTriggerAlarms(day)
+
+    const now = new Date()
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    await chrome.alarms.create(NEXT_DAY_ALARM, { when: midnight.getTime() })
     return day
   })
+}
 
+export function handleAlarm(name: string): Promise<unknown> {
+  if (name === NEXT_DAY_ALARM) return getTodayTriggers()
+  return enqueue(() => handleTriggerAlarm(name))
+}
+
+function enqueue<T>(operation: () => Promise<T>): Promise<T> {
+  const result = pending.then(operation)
   pending = result.then(() => {}, () => {})
   return result
 }
