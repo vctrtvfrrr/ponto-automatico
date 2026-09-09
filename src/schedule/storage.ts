@@ -1,4 +1,4 @@
-import type { Schedule, Weekday } from './schedule.ts'
+import { WEEKDAYS, type Schedule, type Weekday } from './schedule.ts'
 
 const STORAGE_KEY = 'schedule'
 
@@ -23,10 +23,35 @@ export const DEFAULT_SCHEDULE: Schedule = {
 // `local`, never `session`: a Schedule has to survive a browser restart.
 export async function loadSchedule(): Promise<Schedule> {
   const stored = await chrome.storage.local.get(STORAGE_KEY)
+  const schedule: unknown = stored[STORAGE_KEY]
 
-  return (stored[STORAGE_KEY] as Schedule | undefined) ?? DEFAULT_SCHEDULE
+  if (schedule === undefined) return DEFAULT_SCHEDULE
+  if (!isSchedule(schedule)) throw new Error('A Escala armazenada tem formato inválido.')
+
+  return schedule
 }
 
 export async function saveSchedule(schedule: Schedule): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEY]: schedule })
+}
+
+function isSchedule(value: unknown): value is Schedule {
+  if (!isRecord(value)) return false
+  const { times, deviationMinutes, toleranceMinutes, skipDates } = value
+
+  return (
+    isRecord(times) &&
+    WEEKDAYS.every((weekday) => isStringArray(times[weekday])) &&
+    typeof deviationMinutes === 'number' &&
+    typeof toleranceMinutes === 'number' &&
+    isStringArray(skipDates)
+  )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
 }

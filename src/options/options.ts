@@ -22,9 +22,8 @@ const { name: extensionName, version } = chrome.runtime.getManifest()
 document.querySelector('#build')!.textContent = `${extensionName} ${version}`
 
 const timeFields = buildTimeFields()
-let editable = true
-
-fill(await loadSchedule())
+let editable = false
+setEditable(false)
 
 form.addEventListener('input', () => {
   if (feedback.className === 'saved') clearFeedback()
@@ -56,6 +55,17 @@ form.addEventListener('submit', async (event) => {
     setEditable(true)
   }
 })
+
+try {
+  fill(await loadSchedule())
+  setEditable(true)
+} catch (failure) {
+  report(
+    'errors',
+    'Não foi possível carregar a Escala. A edição está bloqueada; recarregue a página para tentar novamente.',
+    [failure instanceof Error ? failure.message : String(failure)],
+  )
+}
 
 function setEditable(enabled: boolean): void {
   editable = enabled
