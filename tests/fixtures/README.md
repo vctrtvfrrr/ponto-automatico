@@ -52,4 +52,4 @@ Cada arquivo abre com um comentário HTML repetindo isso, para que a informaçã
 
 **A origem da Marcação aparece, mas seu vocabulário não foi mapeado.** A linha traz `pm-icon[title="Inserção por software"]` com ícone `phone_iphone`. Que esse par corresponda especificamente ao aplicativo de celular é leitura plausível, não verificada — os outros valores possíveis desse título não foram observados.
 
-**Falta o HAR, e com ele a resposta sobre o reCAPTCHA.** Sabe-se que `api.js` e `recaptcha__en.js` carregam em `/registrar-ponto` e que `window.grecaptcha` existe, não-enterprise. Carregar a biblioteca não é o mesmo que executar a verificação para uma ação, então isso não distingue "o reCAPTCHA atua na requisição de registro" de "atua apenas no login". Ver a issue #3 para o estado dessa pendência.
+**O reCAPTCHA não atua no registro.** Resolvido pelo HAR de uma Marcação real: a requisição de registro não carrega token de reCAPTCHA, nem em header nem no corpo. Ver `docs/pontomais/register-request.md`, que também documenta a forma da requisição como fallback para quando esta interface mudar.
