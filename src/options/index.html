@@ -3,11 +3,86 @@
   <head>
     <meta charset="utf-8" />
     <title>Opções — Ponto Automático</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        line-height: 1.5;
+        margin: 2rem auto;
+        max-width: 42rem;
+        padding: 0 1rem;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-top: 1rem;
+      }
+      input,
+      textarea {
+        box-sizing: border-box;
+        font: inherit;
+        margin-top: 0.25rem;
+        padding: 0.4rem;
+        width: 100%;
+      }
+      .hint {
+        color: #555;
+        font-size: 0.875rem;
+        font-weight: 400;
+      }
+      button {
+        font: inherit;
+        margin-top: 1.5rem;
+        padding: 0.5rem 1.25rem;
+      }
+      #feedback:not(:empty) {
+        border-left: 4px solid;
+        margin-top: 1.5rem;
+        padding: 0.5rem 1rem;
+      }
+      #feedback.errors {
+        border-color: #b3261e;
+      }
+      #feedback.saved {
+        border-color: #146c2e;
+      }
+      #feedback ul {
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+    </style>
   </head>
   <body>
     <h1>Opções</h1>
     <p id="build"></p>
-    <p>A edição da Escala, do desvio, da tolerância e das Exceções ainda não existe.</p>
+
+    <form id="schedule">
+      <h2>Escala</h2>
+      <p class="hint">
+        Horários no formato HH:MM, separados por vírgula. Um dia sem horários é um dia não
+        trabalhado.
+      </p>
+      <div id="weekdays"></div>
+
+      <label for="deviation">
+        Desvio <span class="hint">— minutos sorteados para mais ou para menos, por Marcação</span>
+      </label>
+      <input id="deviation" type="number" step="1" />
+
+      <label for="tolerance">
+        Tolerância <span class="hint">— minutos de atraso em que o Gatilho ainda marca</span>
+      </label>
+      <input id="tolerance" type="number" step="1" />
+
+      <label for="skip-dates">
+        Exceções <span class="hint">— uma data AAAA-MM-DD por linha; o dia inteiro é pulado</span>
+      </label>
+      <textarea id="skip-dates" rows="5"></textarea>
+
+      <button type="submit">Salvar</button>
+    </form>
+
+    <div id="feedback"></div>
+
     <script type="module" src="./options.ts"></script>
   </body>
 </html>

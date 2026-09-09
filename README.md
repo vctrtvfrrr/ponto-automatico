@@ -2,7 +2,7 @@
 
 Extensão do Chrome que registra as Marcações do dia no PontoMais a partir de uma Escala declarada. O vocabulário do domínio está em `CONTEXT.md`; as decisões já tomadas, em `docs/adr/`.
 
-Nesta versão a extensão instala e abre. Ela ainda não faz nada com o ponto.
+Nesta versão a extensão instala, abre e guarda a Escala editada na página de opções. Ela ainda não registra Marcações.
 
 ## Instalar
 
