@@ -36,7 +36,20 @@ form.addEventListener('submit', async (event) => {
     return
   }
 
-  await saveSchedule(schedule)
+  // Clearing before the write: a refused write must never leave the earlier
+  // confirmation standing, which would read as saved to someone about to close
+  // the page.
+  clearFeedback()
+
+  try {
+    await saveSchedule(schedule)
+  } catch (refusal) {
+    report('errors', 'A Escala não foi salva: o armazenamento recusou a gravação.', [
+      refusal instanceof Error ? refusal.message : String(refusal),
+    ])
+    return
+  }
+
   report('saved', 'Escala salva.', [])
 })
 
@@ -92,6 +105,11 @@ function splitEntries(value: string, separator: string): string[] {
     .split(separator)
     .map((entry) => entry.trim())
     .filter((entry) => entry !== '')
+}
+
+function clearFeedback(): void {
+  feedback.className = ''
+  feedback.replaceChildren()
 }
 
 function report(tone: 'errors' | 'saved', heading: string, details: string[]): void {

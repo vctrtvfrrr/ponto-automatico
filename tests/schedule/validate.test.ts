@@ -49,6 +49,13 @@ describe('malformed time', () => {
 
     expect(errors).toEqual([{ kind: 'malformed-time', weekday: 3, value: 'meio-dia' }])
   })
+
+  test('still judges each readable time against midnight, which is not a pairwise check', () => {
+    expect(validateSchedule(onWednesday(['23:50', 'meio-dia']))).toEqual([
+      { kind: 'malformed-time', weekday: 3, value: 'meio-dia' },
+      { kind: 'deviation-crosses-midnight', weekday: 3, time: '23:50', deviationMinutes: 15 },
+    ])
+  })
 })
 
 describe('times out of increasing order', () => {

@@ -41,9 +41,6 @@ function validateDay(
     else parsed.push({ value, at })
   }
 
-  // Order and spacing say nothing while any value of the day is unreadable.
-  if (errors.length > 0) return errors
-
   if (deviationMinutes !== null) {
     for (const { value, at } of parsed) {
       if (at - deviationMinutes < 0 || at + deviationMinutes >= MINUTES_IN_DAY) {
@@ -51,6 +48,10 @@ function validateDay(
       }
     }
   }
+
+  // Order and spacing are pairwise, so one unreadable value makes the whole
+  // sequence unjudgeable. Each time's own distance from midnight is not.
+  if (parsed.length < times.length) return errors
 
   for (const [index, current] of parsed.entries()) {
     const previous = parsed[index - 1]
