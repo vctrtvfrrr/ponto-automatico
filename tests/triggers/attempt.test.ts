@@ -3,6 +3,31 @@ import { decideAttempt } from '../../src/triggers/attempt.ts'
 
 const trigger = { slot: 0, at: new Date(2026, 8, 9, 8, 30).getTime() }
 
+test('skips a scheduled Trigger while automation is disabled', () => {
+  expect(decideAttempt(trigger, 15, new Date(2026, 8, 9, 8, 35), { enabled: false })).toEqual({ result: 'disabled' })
+})
+
+test('does not catch up a Trigger after resuming, even inside tolerance', () => {
+  const automation = { enabled: true, resumedAt: new Date(2026, 8, 9, 8, 31).getTime() }
+
+  expect(decideAttempt(trigger, 15, new Date(2026, 8, 9, 8, 35), automation)).toEqual({ result: 'disabled' })
+})
+
+test('only resumes Triggers strictly after the instant automation was enabled', () => {
+  const now = new Date(2026, 8, 9, 8, 35)
+
+  expect(decideAttempt(trigger, 15, now, { enabled: true, resumedAt: trigger.at })).toEqual({ result: 'disabled' })
+  expect(decideAttempt(trigger, 15, now, { enabled: true, resumedAt: trigger.at - 1 })).toEqual({ result: 'ready' })
+})
+
+test('waits for a future Trigger instead of consuming it on an early alarm during a pause', () => {
+  expect(decideAttempt(trigger, 15, new Date(trigger.at - 1), { enabled: false })).toEqual({ result: 'wait' })
+})
+
+test('does not report expiration for a Trigger skipped by the kill switch', () => {
+  expect(decideAttempt(trigger, 15, new Date(2026, 8, 9, 9), { enabled: false })).toEqual({ result: 'disabled' })
+})
+
 test('proceeds at the exact opening of the tolerance window', () => {
   expect(decideAttempt(trigger, 15, new Date(2026, 8, 9, 8, 30))).toEqual({ result: 'ready' })
 })

@@ -9,7 +9,9 @@ export function planToday(
   previous: DailyTriggers | undefined,
   now: Date,
   random: () => number,
-): DailyTriggers {
+  automationEnabled = true,
+): DailyTriggers | undefined {
+  if (!automationEnabled) return undefined
   const date = localDate(now)
   if (previous?.date === date) return previous
   if (validateSchedule(schedule).length > 0) throw new Error('A Escala contém valores inválidos.')

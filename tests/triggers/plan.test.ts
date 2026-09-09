@@ -6,8 +6,18 @@ import { nextTrigger, planToday } from '../../src/triggers/plan.ts'
 const wednesday = new Date(2026, 8, 9, 6)
 const noTimes: Record<Weekday, string[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
 
+test('does not plan or draw while automation is disabled, even with an existing plan', () => {
+  const previous = { date: '2026-09-09', triggers: [{ slot: 0, at: wednesday.getTime() }] }
+
+  for (const day of [undefined, previous]) {
+    expect(planToday(DEFAULT_SCHEDULE, day, wednesday, () => {
+      throw new Error('Disabled automation must not draw')
+    }, false)).toBeUndefined()
+  }
+})
+
 test('selects the next Trigger at or after the injected current instant', () => {
-  const day = planToday(DEFAULT_SCHEDULE, undefined, wednesday, () => 0.5)
+  const day = planToday(DEFAULT_SCHEDULE, undefined, wednesday, () => 0.5)!
 
   expect(nextTrigger(day, new Date(2026, 8, 9, 8, 30))).toEqual(day.triggers[0])
   expect(nextTrigger(day, new Date(2026, 8, 9, 8, 30, 1))).toEqual(day.triggers[1])
@@ -17,8 +27,8 @@ test('selects the next Trigger at or after the injected current instant', () => 
 
 test('starts a new local day with new Triggers even when UTC is already on the following date', () => {
   const late = new Date(2026, 8, 9, 23, 59)
-  const day = planToday(DEFAULT_SCHEDULE, undefined, late, () => 0)
-  const tomorrow = planToday(DEFAULT_SCHEDULE, day, new Date(2026, 8, 10, 0, 0), () => 1)
+  const day = planToday(DEFAULT_SCHEDULE, undefined, late, () => 0)!
+  const tomorrow = planToday(DEFAULT_SCHEDULE, day, new Date(2026, 8, 10, 0, 0), () => 1)!
 
   expect(day.date).toBe('2026-09-09')
   expect(tomorrow.date).toBe('2026-09-10')
@@ -40,7 +50,7 @@ test('keeps strict slot order for every extreme combination at the narrowest all
 
   for (let combination = 0; combination < 16; combination++) {
     const draws = [0, 1, 2, 3].map((slot) => (combination >> slot) & 1)
-    const day = planToday(schedule, undefined, wednesday, () => draws.shift()!)
+    const day = planToday(schedule, undefined, wednesday, () => draws.shift()!)!
     expect(day.triggers.map(({ slot }) => slot)).toEqual([0, 1, 2, 3])
     for (let slot = 1; slot < day.triggers.length; slot++) {
       expect(day.triggers[slot]!.at).toBeGreaterThan(day.triggers[slot - 1]!.at)
@@ -54,7 +64,7 @@ test.each([
   { draws: [0, 1, 0, 1], hours: 9 },
 ])('preserves ADR-0002: independent deviations allow a $hours-hour WorkDay', ({ draws, hours }) => {
   const samples = [...draws]
-  const { triggers } = planToday(DEFAULT_SCHEDULE, undefined, wednesday, () => samples.shift()!)
+  const { triggers } = planToday(DEFAULT_SCHEDULE, undefined, wednesday, () => samples.shift()!)!
   const duration = triggers[1]!.at - triggers[0]!.at + triggers[3]!.at - triggers[2]!.at
 
   expect(duration / 3_600_000).toBe(hours)
@@ -78,7 +88,7 @@ test.each([0, 1, 15, 719])('keeps every draw bucket inside deviation %i, includi
 
   for (let bucket = 0; bucket < bucketCount; bucket++) {
     for (const position of [0.25, 0.75]) {
-      const day = planToday(schedule, undefined, wednesday, () => (bucket + position) / bucketCount)
+      const day = planToday(schedule, undefined, wednesday, () => (bucket + position) / bucketCount)!
       const offset = (day.triggers[0]!.at - nominal) / 60_000
       expect(Number.isInteger(offset)).toBe(true)
       expect(offset).toBeGreaterThanOrEqual(-deviationMinutes)
@@ -89,7 +99,7 @@ test.each([0, 1, 15, 719])('keeps every draw bucket inside deviation %i, includi
 
   expect(offsets.size).toBe(bucketCount)
   for (const draw of [0, Number.MIN_VALUE, 1 - Number.EPSILON, 1]) {
-    const day = planToday(schedule, undefined, wednesday, () => draw)
+    const day = planToday(schedule, undefined, wednesday, () => draw)!
     expect(day.triggers[0]!.at).toBeGreaterThanOrEqual(nominal - deviationMinutes * 60_000)
     expect(day.triggers[0]!.at).toBeLessThanOrEqual(nominal + deviationMinutes * 60_000)
   }
@@ -117,7 +127,7 @@ test('keeps persisted Triggers for the same local date even after editing the Sc
 
 test('draws one Trigger per Schedule time using independent whole-minute deviations', () => {
   const draws = [0, 0.5, 1 - Number.EPSILON, 0.25]
-  const day = planToday(DEFAULT_SCHEDULE, undefined, wednesday, () => draws.shift()!)
+  const day = planToday(DEFAULT_SCHEDULE, undefined, wednesday, () => draws.shift()!)!
 
   expect(day).toEqual({
     date: '2026-09-09',

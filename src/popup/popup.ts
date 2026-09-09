@@ -23,7 +23,7 @@ async function loadDay(): Promise<void> {
     const response: TodayTriggersResponse = await chrome.runtime.sendMessage({ type: GET_TODAY_TRIGGERS })
     if ('error' in response) throw new Error(response.error)
     day = response.day
-    status.textContent = day.triggers.length === 0 ? 'Nenhum Gatilho previsto para hoje.' : ''
+    status.textContent = !day || day.triggers.length === 0 ? 'Nenhum Gatilho previsto para hoje.' : ''
     render()
   } catch (error) {
     day = undefined

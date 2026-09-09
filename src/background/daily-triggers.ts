@@ -8,7 +8,7 @@ const NEXT_DAY_ALARM = 'plan-next-day'
 // The queue holds no decision state; each operation reloads persistent storage.
 let pending: Promise<void> = Promise.resolve()
 
-export function getTodayTriggers(): Promise<DailyTriggers> {
+export function getTodayTriggers(): Promise<DailyTriggers | undefined> {
   return enqueue(async () => {
     const schedule = await loadSchedule()
     const stored = await chrome.storage.local.get('dailyTriggers')
@@ -18,6 +18,7 @@ export function getTodayTriggers(): Promise<DailyTriggers> {
     }
 
     const day = planToday(schedule, previous, new Date(), Math.random)
+    if (!day) return undefined
     if (previous && day !== previous) await ensureTriggerAlarms(previous)
     if (day !== previous) await chrome.storage.local.set({ dailyTriggers: day })
     await ensureTriggerAlarms(day)
