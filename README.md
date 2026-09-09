@@ -4,7 +4,13 @@ Extensão do Chrome que registra as Marcações do dia no PontoMais a partir de 
 
 Nesta versão, a extensão guarda a Escala e mostra os Gatilhos de hoje no popup. Cada Gatilho aciona uma Tentativa, cujo resultado fica salvo no navegador. Ela ainda não registra Marcações.
 
-O primeiro despertar do worker no dia sorteia os Gatilhos e os guarda no navegador. Reabrir o popup ou reiniciar o navegador mantém esses horários. Os horários usam o fuso da máquina.
+O botão **Desligar automação** no popup interrompe a automação. O popup mostra **Automação DESLIGADA** e o estado persiste até você clicar em **Ligar automação**, inclusive após reiniciar o navegador. A automação fica ligada por padrão em instalações novas e existentes.
+
+Enquanto a automação está desligada, nenhum dia é planejado. Cada Tentativa consulta o estado salvo, inclusive quando seu Gatilho já estava agendado. Um Gatilho que chega ao próprio horário durante a pausa recebe `disabled`, sem Marcação nem notificação de expiração.
+
+Ao religar, somente os Gatilhos posteriores ao instante da retomada podem prosseguir. Gatilhos anteriores ou simultâneos recebem `disabled`, mesmo dentro da tolerância ou após um reinício. Os horários já sorteados são preservados. Se o dia ainda não tem planejamento, a retomada faz o sorteio.
+
+Com a automação ligada, o primeiro despertar do worker no dia sorteia os Gatilhos e os guarda no navegador. Reabrir o popup ou reiniciar o navegador mantém esses horários. Os horários usam o fuso da máquina.
 
 A extensão cria um alarme por Gatilho e recupera alarmes ausentes quando o worker inicia. Um alarme adicional prepara o próximo dia à meia-noite. Gatilhos pendentes do dia anterior continuam disponíveis para avaliação após um reinício.
 

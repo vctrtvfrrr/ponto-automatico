@@ -6,6 +6,9 @@ import { getTodayTriggers, handleAlarm } from './daily-triggers.ts'
 // event to a listener that the freshly woken script has already registered.
 chrome.runtime.onInstalled.addListener(handleWake)
 chrome.runtime.onStartup.addListener(handleWake)
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.automation) handleWake()
+})
 chrome.alarms.onAlarm.addListener((alarm) => {
   void handleAlarm(alarm.name).catch((error: unknown) => console.error('Não foi possível processar o Gatilho.', error))
 })

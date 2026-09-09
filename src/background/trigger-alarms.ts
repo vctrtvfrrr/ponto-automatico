@@ -1,3 +1,4 @@
+import { loadAutomation } from '../automation/storage.ts'
 import { loadSchedule } from '../schedule/storage.ts'
 import { decideAttempt, type AttemptDecision } from '../triggers/attempt.ts'
 import type { DailyTriggers, Trigger } from '../triggers/plan.ts'
@@ -41,8 +42,9 @@ export async function handleTriggerAlarm(name: string): Promise<void> {
   if (!Number.isInteger(schedule.toleranceMinutes) || schedule.toleranceMinutes < 0) {
     throw new Error('A tolerância da Escala é inválida.')
   }
+  const automation = await loadAutomation()
   const now = new Date()
-  const decision = decideAttempt(saved.trigger, schedule.toleranceMinutes, now)
+  const decision = decideAttempt(saved.trigger, schedule.toleranceMinutes, now, automation)
   if (decision.result === 'wait') {
     await chrome.alarms.create(name, { when: saved.trigger.at })
     return

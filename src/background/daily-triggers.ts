@@ -1,3 +1,4 @@
+import { loadAutomation } from '../automation/storage.ts'
 import { loadSchedule } from '../schedule/storage.ts'
 import { planToday, type DailyTriggers } from '../triggers/plan.ts'
 import { ensureTriggerAlarms, handleTriggerAlarm } from './trigger-alarms.ts'
@@ -17,7 +18,8 @@ export function getTodayTriggers(): Promise<DailyTriggers | undefined> {
       throw new Error('Os Gatilhos armazenados têm formato inválido.')
     }
 
-    const day = planToday(schedule, previous, new Date(), Math.random)
+    const automation = await loadAutomation()
+    const day = planToday(schedule, previous, new Date(), Math.random, automation.enabled)
     if (!day) return undefined
     if (previous && day !== previous) await ensureTriggerAlarms(previous)
     if (day !== previous) await chrome.storage.local.set({ dailyTriggers: day })

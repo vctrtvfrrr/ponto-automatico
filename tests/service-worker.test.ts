@@ -20,12 +20,15 @@ test('loading the service worker registers wake, Trigger and popup listeners', a
       onStartup: slot('runtime.onStartup'),
       onMessage: slot('runtime.onMessage'),
     },
-    storage: { local: { get: async () => ({}), set: async () => {} } },
+    storage: {
+      local: { get: async () => ({}), set: async () => {} },
+      onChanged: slot('storage.onChanged'),
+    },
     alarms: { onAlarm: slot('alarms.onAlarm'), get: async () => undefined, create: async () => {} },
   })
   vi.resetModules()
 
   await import('../src/background/service-worker')
 
-  expect(registered).toEqual(['runtime.onInstalled', 'runtime.onStartup', 'alarms.onAlarm', 'runtime.onMessage'])
+  expect(registered).toEqual(['runtime.onInstalled', 'runtime.onStartup', 'storage.onChanged', 'alarms.onAlarm', 'runtime.onMessage'])
 })
