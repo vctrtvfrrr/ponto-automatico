@@ -9,6 +9,11 @@ export const manifest = {
   // activeTab is deliberately absent: it needs a user gesture, and no gesture
   // exists at the instant a Trigger fires.
   host_permissions: ['https://app2.pontomais.com.br/*'],
+  content_scripts: [{
+    matches: ['https://app2.pontomais.com.br/*'],
+    js: ['src/page/content-script.ts'],
+    run_at: 'document_idle',
+  }],
   background: {
     service_worker: 'src/background/service-worker.ts',
     type: 'module',

@@ -1,11 +1,13 @@
 import { loadAutomation } from '../automation/storage.ts'
 import { loadSchedule } from '../schedule/storage.ts'
+import { decidePageObservation, type PageDecision } from '../page/observation.ts'
 import { decideAttempt, type AttemptDecision } from '../triggers/attempt.ts'
 import type { DailyTriggers, Trigger } from '../triggers/plan.ts'
+import { observeWorkDay } from './page.ts'
 
 const TRIGGER_PREFIX = 'trigger:'
 
-type Attempt = { at: number; decision: Exclude<AttemptDecision, { result: 'wait' }> }
+type Attempt = { at: number; decision: Exclude<AttemptDecision, { result: 'wait' }> | PageDecision }
 type StoredTrigger = { date: string; trigger: Trigger; attempt?: Attempt; notified?: boolean }
 
 export async function ensureTriggerAlarms(day: DailyTriggers): Promise<void> {
@@ -50,8 +52,8 @@ export async function handleTriggerAlarm(name: string): Promise<void> {
     return
   }
 
-  // TODO: Continue ready Attempts through the page adapter in issues #8 and #9.
-  const completed: StoredTrigger = { ...saved, attempt: { at: now.getTime(), decision } }
+  const outcome = decision.result === 'ready' ? decidePageObservation(await observeWorkDay(saved.date)) : decision
+  const completed: StoredTrigger = { ...saved, attempt: { at: now.getTime(), decision: outcome } }
   await chrome.storage.local.set({ [name]: completed })
   await finishAttempt(name, completed)
 }
@@ -59,12 +61,12 @@ export async function handleTriggerAlarm(name: string): Promise<void> {
 async function finishAttempt(name: string, saved: StoredTrigger): Promise<void> {
   await chrome.alarms.clear(name)
   const decision = saved.attempt!.decision
-  if (decision.result !== 'expired' || saved.notified) return
+  if (!('notification' in decision) || saved.notified) return
 
   await chrome.notifications.create(name, {
     type: 'basic',
     iconUrl: chrome.runtime.getURL(chrome.runtime.getManifest().icons!['128']!),
-    title: 'Ponto Automático — Gatilho vencido',
+    title: decision.result === 'expired' ? 'Ponto Automático — Gatilho vencido' : 'Ponto Automático — Falha na leitura',
     message: `Gatilho de ${saved.date}, ${new Date(saved.trigger.at).toLocaleTimeString('pt-BR')}. ${decision.notification}`,
   })
   await chrome.storage.local.set({ [name]: { ...saved, notified: true } })
