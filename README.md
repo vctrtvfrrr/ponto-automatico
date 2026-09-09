@@ -2,7 +2,11 @@
 
 Extensão do Chrome que registra as Marcações do dia no PontoMais a partir de uma Escala declarada. O vocabulário do domínio está em `CONTEXT.md`; as decisões já tomadas, em `docs/adr/`.
 
-Nesta versão a extensão instala, abre e guarda a Escala editada na página de opções. Ela ainda não registra Marcações.
+Nesta versão, a extensão guarda a Escala editada nas opções e mostra os horários sorteados de hoje e o próximo Gatilho no popup. Ela ainda não registra Marcações.
+
+O primeiro despertar do worker no dia sorteia os Gatilhos e os guarda no navegador. Reabrir o popup ou reiniciar o navegador mantém esses horários. Os horários usam o fuso da máquina.
+
+Alterações na Escala, no desvio ou nas Exceções após o sorteio valem a partir do dia seguinte. Uma Exceção ou um dia da semana sem horários gera um planejamento vazio, também preservado até o dia seguinte.
 
 ## Instalar
 

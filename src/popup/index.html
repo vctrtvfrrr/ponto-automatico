@@ -7,7 +7,10 @@
   <body>
     <h1>Ponto Automático</h1>
     <p id="build"></p>
-    <p>Instalada e ociosa: nenhum Gatilho é agendado ainda.</p>
+    <h2>Escala de hoje — <time id="date"></time></h2>
+    <p id="status" role="status"></p>
+    <ol id="triggers"></ol>
+    <p id="next" aria-live="polite"></p>
     <script type="module" src="./popup.ts"></script>
   </body>
 </html>
