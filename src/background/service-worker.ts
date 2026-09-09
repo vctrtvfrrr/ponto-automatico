@@ -1,5 +1,8 @@
 import { GET_TODAY_TRIGGERS, type TodayTriggersResponse } from '../triggers/messages.ts'
 import { getTodayTriggers, handleAlarm } from './daily-triggers.ts'
+import { GET_TODAY_WORK_DAY, type TodayWorkDayResponse } from '../page/messages.ts'
+import { localDate } from '../triggers/plan.ts'
+import { observeWorkDay } from './page.ts'
 
 // Listeners must be registered during the initial synchronous evaluation of this
 // script. The worker is torn down after 30 s idle, and Chrome only delivers an
@@ -12,7 +15,14 @@ chrome.storage.onChanged.addListener((changes, area) => {
 chrome.alarms.onAlarm.addListener((alarm) => {
   void handleAlarm(alarm.name).catch((error: unknown) => console.error('Não foi possível processar o Gatilho.', error))
 })
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse: (response: TodayTriggersResponse) => void) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse: (response: TodayTriggersResponse | TodayWorkDayResponse) => void) => {
+  if (message?.type === GET_TODAY_WORK_DAY) {
+    void observeWorkDay(localDate(new Date())).then(
+      sendResponse,
+      () => sendResponse({ error: 'Não foi possível atualizar as Marcações.' }),
+    )
+    return true
+  }
   if (message?.type !== GET_TODAY_TRIGGERS) return
 
   void getTodayTriggers().then(
