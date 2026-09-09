@@ -17,15 +17,15 @@ O Modo do desenvolvedor precisa continuar ligado: o Chrome remove extensões des
 
 ## CI e download da extensão
 
-O workflow executa `npm test` em todo push. Na branch `main`, após os testes passarem, ele executa `npm run build` e disponibiliza o artefato `ponto-automatico-chrome`.
+O workflow verifica os tipos e executa os testes em todo push de branch ou tag `v*`. No push de uma tag `v*`, após as verificações passarem, ele gera o build e anexa `ponto-automatico-chrome.zip` ao Release dessa tag. Se o Release não existir, o workflow cria um com o nome da tag.
 
-1. Na aba **Actions** do Gitea, abra uma execução bem-sucedida da `main`.
-2. Baixe o ZIP do artefato `ponto-automatico-chrome`.
+1. Na página **Releases** do Gitea, abra o Release da versão desejada após o workflow terminar.
+2. Baixe o anexo `ponto-automatico-chrome.zip`.
 3. Extraia o ZIP para uma pasta permanente.
 4. Em `chrome://extensions`, ative o **Modo do desenvolvedor**.
 5. Clique em **Carregar sem compactação** e selecione a pasta extraída que contém `manifest.json`.
 
-O workflow usa Node.js 24 e precisa de um runner Linux com o rótulo `ubuntu-latest`.
+O workflow usa Node.js 24 e precisa de um runner Linux com o rótulo `ubuntu-latest` e os comandos `bash`, `zip`, `curl` e `jq`. A publicação usa o `GITEA_TOKEN` automático com permissão `releases: write`, que as configurações do repositório precisam permitir.
 
 ## Comandos
 
