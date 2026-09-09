@@ -1,7 +1,7 @@
 import type { Schedule, Weekday } from '../schedule/schedule.ts'
 import { validateSchedule } from '../schedule/validate.ts'
 
-export type Trigger = { slot: number; at: number }
+export type Trigger = { slot: number; at: number; window?: { start: number; end: number } }
 export type DailyTriggers = { date: string; triggers: Trigger[] }
 
 export function planToday(
@@ -22,7 +22,9 @@ export function planToday(
     const [hours, minutes] = time.split(':').map(Number)
     const offset = Math.min(2 * deviation, Math.floor(random() * (2 * deviation + 1))) - deviation
     const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours!, minutes! + offset)
-    return { slot, at: at.getTime() }
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours!, minutes! - deviation)
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours!, minutes! + deviation)
+    return { slot, at: at.getTime(), window: { start: start.getTime(), end: end.getTime() } }
   })
 
   return { date, triggers }

@@ -6,6 +6,12 @@ export function isLoginPage(document: Document): boolean {
   return document.querySelector('login-form input[type="password"]') !== null
 }
 
+export function findPunchButton(document: Document): HTMLButtonElement | undefined {
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('pm-button button'))
+    .filter((button) => button.textContent?.trim() === 'Bater ponto' && !button.closest('[hidden]'))
+  return buttons.length === 1 ? buttons[0] : undefined
+}
+
 export function readWorkDay(document: Document, date: string, now: Date): WorkDay | undefined {
   // The site's default filter is the last 30 days; its rows omit the year.
   let dayMonth: string | undefined

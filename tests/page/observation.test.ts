@@ -1,5 +1,12 @@
 import { expect, test } from 'vitest'
-import { decidePageObservation } from '../../src/page/observation.ts'
+import { decidePageObservation, decideRegistration } from '../../src/page/observation.ts'
+
+test('aborts and notifies when the Punch button is absent or disabled', () => {
+  expect(decideRegistration('missing')).toMatchObject({ result: 'button-missing', notification: expect.any(String) })
+  expect(decideRegistration('disabled')).toMatchObject({ result: 'button-disabled', notification: expect.any(String) })
+  expect(decideRegistration('login')).toMatchObject({ result: 'login-required', notification: expect.any(String) })
+  expect(decideRegistration('ready')).toEqual({ result: 'ready' })
+})
 
 test('aborts and asks the user to log in when the page shows login', () => {
   expect(decidePageObservation({ status: 'login' })).toEqual({

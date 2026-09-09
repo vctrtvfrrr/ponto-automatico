@@ -6,6 +6,19 @@ import { nextTrigger, planToday } from '../../src/triggers/plan.ts'
 const wednesday = new Date(2026, 8, 9, 6)
 const noTimes: Record<Weekday, string[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
 
+test('keeps the recognition window centered on the Schedule time regardless of the draw', () => {
+  const day = planToday(DEFAULT_SCHEDULE, undefined, wednesday, () => 1)!
+
+  expect(day.triggers[0]).toEqual({
+    slot: 0,
+    at: new Date(2026, 8, 9, 8, 45).getTime(),
+    window: {
+      start: new Date(2026, 8, 9, 8, 15).getTime(),
+      end: new Date(2026, 8, 9, 8, 45).getTime(),
+    },
+  })
+})
+
 test('does not plan or draw while automation is disabled, even with an existing plan', () => {
   const previous = { date: '2026-09-09', triggers: [{ slot: 0, at: wednesday.getTime() }] }
 
@@ -32,7 +45,7 @@ test('starts a new local day with new Triggers even when UTC is already on the f
 
   expect(day.date).toBe('2026-09-09')
   expect(tomorrow.date).toBe('2026-09-10')
-  expect(tomorrow.triggers[0]).toEqual({ slot: 0, at: new Date(2026, 8, 10, 8, 45).getTime() })
+  expect(tomorrow.triggers[0]).toMatchObject({ slot: 0, at: new Date(2026, 8, 10, 8, 45).getTime() })
 })
 
 test('persists a weekday without Schedule times as an empty day', () => {
@@ -129,7 +142,7 @@ test('draws one Trigger per Schedule time using independent whole-minute deviati
   const draws = [0, 0.5, 1 - Number.EPSILON, 0.25]
   const day = planToday(DEFAULT_SCHEDULE, undefined, wednesday, () => draws.shift()!)!
 
-  expect(day).toEqual({
+  expect(day).toMatchObject({
     date: '2026-09-09',
     triggers: [
       { slot: 0, at: new Date(2026, 8, 9, 8, 15).getTime() },

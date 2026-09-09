@@ -3,11 +3,45 @@ import { beforeEach, expect, test } from 'vitest'
 import table from '../fixtures/my-point-table.html?raw'
 import login from '../fixtures/login-form.html?raw'
 import register from '../fixtures/register-widget.html?raw'
-import { isLoginPage, readWorkDay } from '../../src/page/readers.ts'
+import { findPunchButton, isLoginPage, readWorkDay } from '../../src/page/readers.ts'
 
 const now = new Date(2026, 2, 3, 9, 30)
 
 beforeEach(() => { document.body.innerHTML = table })
+
+test('finds the real Punch button in the captured widget and preserves its disabled state', () => {
+  document.body.innerHTML = register
+  const button = findPunchButton(document)
+
+  expect(button?.textContent?.trim()).toBe('Bater ponto')
+  expect(button?.disabled).toBe(true)
+})
+
+test('finds the same button after removing generated attributes and changing design classes', () => {
+  document.body.innerHTML = register
+  const original = findPunchButton(document)!
+  document.querySelectorAll('*').forEach((element) => {
+    for (const attribute of element.getAttributeNames()) {
+      if (attribute.startsWith('_ng') || attribute === 'class') element.removeAttribute(attribute)
+    }
+  })
+  original.disabled = false
+
+  expect(findPunchButton(document)).toBe(original)
+  expect(findPunchButton(document)?.disabled).toBe(false)
+})
+
+test('rejects a missing, hidden or ambiguous Punch button instead of choosing another action', () => {
+  document.body.innerHTML = register
+  const original = findPunchButton(document)!
+  original.hidden = true
+  expect(findPunchButton(document)).toBeUndefined()
+  original.hidden = false
+  original.parentElement!.append(original.cloneNode(true))
+  expect(findPunchButton(document)).toBeUndefined()
+  original.parentElement!.remove()
+  expect(findPunchButton(document)).toBeUndefined()
+})
 
 test('reads all four Punches from the title instead of the abbreviated visible text', () => {
   expect(readWorkDay(document, '2026-03-01', now)).toEqual({
