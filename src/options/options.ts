@@ -22,11 +22,17 @@ const { name: extensionName, version } = chrome.runtime.getManifest()
 document.querySelector('#build')!.textContent = `${extensionName} ${version}`
 
 const timeFields = buildTimeFields()
+let editable = true
 
 fill(await loadSchedule())
 
+form.addEventListener('input', () => {
+  if (feedback.className === 'saved') clearFeedback()
+})
+
 form.addEventListener('submit', async (event) => {
   event.preventDefault()
+  if (!editable) return
 
   const schedule = read()
   const errors = validateSchedule(schedule)
@@ -36,22 +42,30 @@ form.addEventListener('submit', async (event) => {
     return
   }
 
-  // Clearing before the write: a refused write must never leave the earlier
-  // confirmation standing, which would read as saved to someone about to close
-  // the page.
-  clearFeedback()
+  setEditable(false)
+  report('saving', 'Salvando…', [])
 
   try {
     await saveSchedule(schedule)
+    report('saved', 'Escala salva.', [])
   } catch (refusal) {
     report('errors', 'A Escala não foi salva: o armazenamento recusou a gravação.', [
       refusal instanceof Error ? refusal.message : String(refusal),
     ])
-    return
+  } finally {
+    setEditable(true)
   }
-
-  report('saved', 'Escala salva.', [])
 })
+
+function setEditable(enabled: boolean): void {
+  editable = enabled
+  const controls = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>(
+    'input, textarea, button',
+  )
+  controls.forEach((control) => {
+    control.disabled = !enabled
+  })
+}
 
 function buildTimeFields(): Record<Weekday, HTMLInputElement> {
   const container = document.querySelector('#weekdays')!
@@ -112,7 +126,7 @@ function clearFeedback(): void {
   feedback.replaceChildren()
 }
 
-function report(tone: 'errors' | 'saved', heading: string, details: string[]): void {
+function report(tone: 'errors' | 'saved' | 'saving', heading: string, details: string[]): void {
   const title = document.createElement('p')
   title.textContent = heading
 
