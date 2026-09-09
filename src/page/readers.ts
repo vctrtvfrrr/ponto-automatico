@@ -26,7 +26,7 @@ export function readWorkDay(document: Document, date: string, now: Date): WorkDa
 
   const rows = Array.from(grid.querySelectorAll('tr.dx-data-row')).filter((row) => {
     const text = row.querySelector(`[aria-colindex="${dateColumn}"]`)?.textContent
-    const match = text?.trim().match(/^[a-zç]{3} - (\d{2}\/\d{2})$/i)
+    const match = text?.trim().match(/^\p{L}{3} - (\d{2}\/\d{2})$/u)
     return match?.[1] === dayMonth
   })
   if (rows.length !== 1) return undefined

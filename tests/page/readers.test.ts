@@ -31,6 +31,11 @@ test('infers the year within the default last 30 days, including the turn of the
   expect(readWorkDay(document, '2026-03-01', january)).toBeUndefined()
 })
 
+test('reads a Saturday WorkDay with an accented weekday abbreviation', () => {
+  document.querySelector('tr.dx-data-row [aria-colindex="3"]')!.textContent = 'sáb - 07/03'
+  expect(readWorkDay(document, '2026-03-07', new Date(2026, 2, 7))).toEqual({ date: '2026-03-07', punches: ['09:02'] })
+})
+
 test.each(['09:02 - invalid', '24:00', '09:02 - 08:00', '09:02 - 09:02', ''])('rejects an incomplete or invalid Punch list: %s', (title) => {
   document.querySelector('tr.dx-data-row [aria-colindex="5"] span[title]')!.setAttribute('title', title)
   expect(readWorkDay(document, '2026-03-03', now)).toBeUndefined()
