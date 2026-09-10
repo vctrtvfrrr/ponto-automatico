@@ -3,7 +3,7 @@ import { decideAttempt } from '../triggers/attempt.ts'
 import { decidePunch, interruptedAttempt } from '../triggers/punch.ts'
 import { CLICK_PUNCH, READ_REGISTRATION, READ_WORK_DAY, type ClickPunchMessage, type ClickPunchResponse, type PageMessage, type ReadWorkDayResponse } from './messages.ts'
 import { decideRegistration, type RegistrationObservation } from './observation.ts'
-import { findPunchButton, isLoginPage, readWorkDay } from './readers.ts'
+import { findPunchButtons, isLoginPage, readWorkDay } from './readers.ts'
 
 let clickConsumed = false
 
@@ -30,11 +30,19 @@ chrome.runtime.onMessage.addListener((message: PageMessage, _sender, sendRespons
   sendResponse(workDay ? { status: 'read', workDay, observedAt: Date.now() } : { status: 'unreadable', observedAt: Date.now() })
 })
 
+// Only the copy the current viewport lays out has a box; the other is display
+// none. Visibility is deliberately not a gate: the Attempt's tab is never
+// rendered, and the widget's entry animation leaves visibility hidden there.
+function punchButton(): HTMLButtonElement | undefined {
+  const rendered = findPunchButtons(document).filter((button) => button.getClientRects().length > 0)
+  return rendered.length === 1 ? rendered[0] : undefined
+}
+
 function readRegistration(): RegistrationObservation {
   if (isLoginPage(document)) return 'login'
   if (location.pathname !== '/registrar-ponto') return 'missing'
-  const button = findPunchButton(document)
-  if (!button || button.getClientRects().length === 0 || getComputedStyle(button).visibility === 'hidden') return 'missing'
+  const button = punchButton()
+  if (!button) return 'missing'
   return button.matches(':disabled') || button.closest('[aria-disabled="true"]') ? 'disabled' : 'ready'
 }
 
@@ -50,6 +58,7 @@ async function clickPunch(message: ClickPunchMessage): Promise<ClickPunchRespons
   if (decision.result !== 'click') return decision
   const registration = decideRegistration(readRegistration())
   if (registration.result !== 'ready') return registration
-  findPunchButton(document)!.click()
+  punchButton()!.click()
   return { result: 'clicked', at: now.getTime() }
 }
+

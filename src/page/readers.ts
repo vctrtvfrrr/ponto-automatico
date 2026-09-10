@@ -6,10 +6,13 @@ export function isLoginPage(document: Document): boolean {
   return document.querySelector('login-form input[type="password"]') !== null
 }
 
-export function findPunchButton(document: Document): HTMLButtonElement | undefined {
-  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('pm-button button'))
-    .filter((button) => button.textContent?.trim() === 'Bater ponto' && !button.closest('[hidden]'))
-  return buttons.length === 1 ? buttons[0] : undefined
+// The page header carries a global 'Bater ponto' shortcut, present on routes
+// that register nothing, and the widget renders a mobile and a desktop copy of
+// the real button. Neither copy uses the hidden attribute.
+export function findPunchButtons(document: Document): HTMLButtonElement[] {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>('pm-button button'))
+    .filter((button) => button.textContent?.trim() === 'Bater ponto')
+    .filter((button) => !button.closest('[hidden]') && !button.closest('header'))
 }
 
 export function readWorkDay(document: Document, date: string, now: Date): WorkDay | undefined {

@@ -3,7 +3,8 @@ import { beforeEach, expect, test } from 'vitest'
 import table from '../fixtures/my-point-table.html?raw'
 import login from '../fixtures/login-form.html?raw'
 import register from '../fixtures/register-widget.html?raw'
-import { findPunchButton, isLoginPage, readWorkDay } from '../../src/page/readers.ts'
+import buttons from '../fixtures/register-buttons.html?raw'
+import { findPunchButtons, isLoginPage, readWorkDay } from '../../src/page/readers.ts'
 
 const now = new Date(2026, 2, 3, 9, 30)
 
@@ -11,15 +12,16 @@ beforeEach(() => { document.body.innerHTML = table })
 
 test('finds the real Punch button in the captured widget and preserves its disabled state', () => {
   document.body.innerHTML = register
-  const button = findPunchButton(document)
+  const buttons = findPunchButtons(document)
 
-  expect(button?.textContent?.trim()).toBe('Bater ponto')
-  expect(button?.disabled).toBe(true)
+  expect(buttons).toHaveLength(1)
+  expect(buttons[0]?.textContent?.trim()).toBe('Bater ponto')
+  expect(buttons[0]?.disabled).toBe(true)
 })
 
 test('finds the same button after removing generated attributes and changing design classes', () => {
   document.body.innerHTML = register
-  const original = findPunchButton(document)!
+  const original = findPunchButtons(document)[0]!
   document.querySelectorAll('*').forEach((element) => {
     for (const attribute of element.getAttributeNames()) {
       if (attribute.startsWith('_ng') || attribute === 'class') element.removeAttribute(attribute)
@@ -27,20 +29,45 @@ test('finds the same button after removing generated attributes and changing des
   })
   original.disabled = false
 
-  expect(findPunchButton(document)).toBe(original)
-  expect(findPunchButton(document)?.disabled).toBe(false)
+  expect(findPunchButtons(document)).toEqual([original])
+  expect(findPunchButtons(document)[0]?.disabled).toBe(false)
 })
 
-test('rejects a missing, hidden or ambiguous Punch button instead of choosing another action', () => {
+test('excludes a hidden Punch button and reports a duplicate instead of choosing one', () => {
   document.body.innerHTML = register
-  const original = findPunchButton(document)!
+  const original = findPunchButtons(document)[0]!
   original.hidden = true
-  expect(findPunchButton(document)).toBeUndefined()
+  expect(findPunchButtons(document)).toHaveLength(0)
   original.hidden = false
   original.parentElement!.append(original.cloneNode(true))
-  expect(findPunchButton(document)).toBeUndefined()
+  expect(findPunchButtons(document)).toHaveLength(2)
   original.parentElement!.remove()
-  expect(findPunchButton(document)).toBeUndefined()
+  expect(findPunchButtons(document)).toHaveLength(0)
+})
+
+// The captured route carries three 'Bater ponto' buttons. Reducing the two
+// widget copies to one needs layout, which happy-dom does not have: only the
+// browser can tell the mobile copy (no box) from the desktop one. That step is
+// verified in content-script.ts against the Attempt's own tab, not here.
+test('excludes the global Punch shortcut the header carries, keeping both widget copies', () => {
+  document.body.innerHTML = buttons
+  const found = findPunchButtons(document)
+
+  expect(document.querySelectorAll('pm-button button')).toHaveLength(3)
+  expect(document.querySelector('header pm-button.btn-registrar button')?.textContent?.trim()).toBe('Bater ponto')
+  expect(found).toHaveLength(2)
+  expect(found.map((button) => button.closest('pm-button')?.className)).toEqual([
+    'pm-btn-icon btn-register mobile',
+    'pm-btn-icon btn-register mt-1',
+  ])
+})
+
+test('excludes a widget copy the page marks hidden, leaving the other', () => {
+  document.body.innerHTML = buttons
+  document.querySelector('pm-card.h-mobile')!.setAttribute('hidden', '')
+
+  expect(findPunchButtons(document).map((button) => button.closest('pm-button')?.className))
+    .toEqual(['pm-btn-icon btn-register mobile'])
 })
 
 test('reads all four Punches from the title instead of the abbreviated visible text', () => {

@@ -11,6 +11,7 @@ Estrutura de DOM capturada da página real logada, em resposta à issue #3. Nenh
 | `register-widget.html` | `https://app2.pontomais.com.br/registrar-ponto` | 2026-09-09T11:43:45Z |
 | `my-point-table.html` | `https://app2.pontomais.com.br/meu-ponto` | 2026-09-09T11:49:22Z |
 | `login-form.html` | `https://app2.pontomais.com.br/login` | 2026-09-09T20:21:32Z |
+| `register-buttons.html` | `https://app2.pontomais.com.br/registrar-ponto` | 2026-09-10T15:02Z |
 
 Coletados pelo console do DevTools na sessão logada, via `outerHTML` do elemento. Inspecionar o DOM não cria Marcação nenhuma.
 
@@ -27,6 +28,8 @@ O que foi feito, em `my-point-table.html`:
 
 Em `register-widget.html`: o endereço do último registro (Plus Code mais cidade, estado e país) e a data e hora do último registro foram substituídos. Localização e horário reais de pessoa real.
 
+Em `register-buttons.html`: as três subárvores `pm-button` são o `outerHTML` real, sem alteração nenhuma — elas contêm só ícone e rótulo, nenhum valor pessoal. As cadeias de ancestrais são as capturadas, remontadas a partir da lista de tags e classes de cada uma; as cópias mobile e desktop compartilham o `vrgente-time-card-register-point` porque foi assim que a captura as mostrou. A ordem relativa entre o galho do `header` e o galho do conteúdo não foi capturada e está inferida: nada no leitor depende dela.
+
 Cada arquivo abre com um comentário HTML repetindo isso, para que a informação viaje com o arquivo.
 
 ## O que estas fixtures ensinam
@@ -40,6 +43,10 @@ Cada arquivo abre com um comentário HTML repetindo isso, para que a informaçã
 **O dia em andamento é identificável.** A coluna de ocorrência traz `pm-icon[title="Expediente em andamento"]` na linha do dia corrente, contra `"Nenhuma ocorrência nesse dia"` nos dias fechados.
 
 **O botão de registrar nasce `disabled`.** No estado capturado, `<button class="pm-button pm-primary" disabled="">`, e o widget exibe "Sua localização expirou!" com um botão "Clique aqui para atualizar a localização". O `disabled` é o portão: achar o botão não basta, a Tentativa tem de verificar se ele está habilitado e tratar a localização expirada como motivo de abortar-e-notificar.
+
+**A rota de registro tem três botões "Bater ponto", não um.** Medido em 2026-09-10, depois de os três Gatilhos do dia falharem: o `header` carrega um atalho global (`pm-button.btn-registrar`, estilo `pm-default`) que aparece também em `/meu-ponto`, rota onde não se registra ponto nenhum; e o widget renderiza duas cópias do botão real dentro do mesmo `vrgente-time-card-register-point`, uma `pm-btn-icon btn-register mobile` e uma `pm-btn-icon btn-register mt-1`. **Nenhuma das três usa o atributo `hidden`** — a cópia inativa é escondida por `display: none` de classe responsiva. Um leitor que exija match único e só filtre `[hidden]` rejeita as três e conclui "botão ausente" para sempre.
+
+**O que separa as duas cópias do widget é layout, não estrutura.** A cópia inativa tem `getClientRects().length === 0` e `offsetParent` nulo; a ativa tem caixa. Isso vale também numa aba criada com `active: false`, que nunca renderiza — medido por sonda dentro da extensão. Já `visibility` não serve de portão nessa aba: a animação de entrada do widget estagna sem `requestAnimationFrame` e congela em estado arbitrário, observado tanto em `visibility: hidden` quanto em `opacity: 0.6`.
 
 **Os hashes do Angular não devem ser tratados como estáveis.** Os atributos `_ngcontent-ng-c4034245850` e `_nghost-ng-c3789811509` são identificadores de componente gerados no build. As âncoras preferíveis são os custom elements (`vrgente-my-point-table`, `vrgente-address-time-card-register`, `pm-button`), as classes de design system (`pm-button pm-primary`, `dx-data-row`, `date-text`) e os atributos ARIA da grid.
 
@@ -55,7 +62,9 @@ Os testes usam as capturas como base. Alterações de datas, atributos, colunas 
 
 **Falta o estado habilitado do botão.** A captura pegou o botão `disabled` por localização expirada. Presume-se que o estado habilitado difira apenas pela ausência do atributo `disabled`, mas isso não foi observado. Quem implementar o Seam 2 não deve tratar essa presunção como verificada.
 
-**As capturas provam presença, não ausência.** Elas mostram onde os elementos estavam nestas duas rotas, nestes estados, neste dia. Não demonstram que não existam outros estados da mesma rota com marcação diferente.
+**As capturas provam presença, não ausência — e essa lacuna já custou três Marcações.** `register-widget.html` é o `outerHTML` de um contêiner só, então não podia mostrar as outras duas cópias do botão nem o atalho do `header`. Os testes passavam, a extensão falhava em toda Tentativa, e a notificação acusava "a interface pode ter mudado" quando a interface sempre foi assim.
+
+A conclusão de procedimento: **capturar o `outerHTML` de um elemento nunca valida um contrato de "exatamente um match"**. Contrato desse tipo exige capturar o *conjunto* de matches do seletor âncora no documento inteiro — que é o que `register-buttons.html` faz. Quando um leitor novo exigir unicidade, capture o conjunto antes de escrever o teste.
 
 **A origem da Marcação aparece, mas seu vocabulário não foi mapeado.** A linha traz `pm-icon[title="Inserção por software"]` com ícone `phone_iphone`. Que esse par corresponda especificamente ao aplicativo de celular é leitura plausível, não verificada — os outros valores possíveis desse título não foram observados.
 
