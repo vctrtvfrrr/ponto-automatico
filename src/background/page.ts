@@ -1,4 +1,4 @@
-import { CLICK_PUNCH, READ_REGISTRATION, READ_WORK_DAY, type ClickPunchMessage, type ClickPunchResponse, type ReadWorkDayMessage, type ReadWorkDayResponse, type WorkDaySnapshot } from '../page/messages.ts'
+import { CLICK_PUNCH, READ_REGISTRATION, READ_WORK_DAY, type ClickPunchMessage, type RegistrationReport, type RegistrationTimeline, type ClickPunchResponse, type ReadWorkDayMessage, type ReadWorkDayResponse, type WorkDaySnapshot } from '../page/messages.ts'
 import { decidePageObservation, decideRegistration, type RegistrationObservation } from '../page/observation.ts'
 import type { WorkDay } from '../page/readers.ts'
 import type { Trigger } from '../triggers/plan.ts'
@@ -37,6 +37,7 @@ export async function performPunch(
   toleranceMinutes: number,
   trackTab: (tabId: number) => Promise<void>,
   recordWorkDay: (workDay: WorkDay) => Promise<void>,
+  recordRegistration: (timeline: RegistrationTimeline) => Promise<void>,
 ): Promise<PunchOutcome> {
   let tabId: number | undefined
   try {
@@ -44,7 +45,9 @@ export async function performPunch(
     tabId = tab.id!
     await trackTab(tabId)
     const registrationDeadline = Date.now() + PAGE_TIMEOUT_MS
-    const registration = await withinDeadline(waitForRegistration(tabId, registrationDeadline), registrationDeadline, 'missing')
+    const timeline: RegistrationTimeline = []
+    const registration = await withinDeadline(waitForRegistration(tabId, registrationDeadline, timeline), registrationDeadline, 'missing')
+    await recordRegistration(timeline)
     const observation = await observeWorkDay(date, Date.now() + PAGE_TIMEOUT_MS, trackTab)
     const page = decidePageObservation(observation)
     if (page.result !== 'read') return page
@@ -97,18 +100,27 @@ async function withinDeadline<T>(operation: Promise<T>, deadline: number, fallba
   }
 }
 
-async function waitForRegistration(tabId: number, deadline: number): Promise<RegistrationObservation> {
+// The widget's button is born disabled and enables only once the page resolves
+// a valid location, so a disabled read is a stage, not an answer. Only ready
+// and login end the wait; anything else stands as the answer at the deadline.
+async function waitForRegistration(tabId: number, deadline: number, timeline: RegistrationTimeline): Promise<RegistrationObservation> {
+  let last: RegistrationObservation = 'missing'
   while (Date.now() < deadline) {
     await chrome.tabs.get(tabId)
     try {
-      const observation: RegistrationObservation = await chrome.tabs.sendMessage(tabId, { type: READ_REGISTRATION }, { frameId: 0 })
-      if (observation === 'ready' || observation === 'disabled' || observation === 'login') return observation
+      const report: RegistrationReport = await chrome.tabs.sendMessage(tabId, { type: READ_REGISTRATION }, { frameId: 0 })
+      const previous = timeline.at(-1)
+      if (previous?.observation !== report.observation || previous.structural !== report.structural || previous.rendered !== report.rendered) {
+        timeline.push({ at: Date.now(), ...report })
+      }
+      if (report.observation === 'ready' || report.observation === 'login') return report.observation
+      if (report.observation === 'disabled') last = report.observation
     } catch {
       // Navigation can replace the document before its content script responds.
     }
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
   }
-  return 'missing'
+  return last
 }
 
 async function waitForWorkDay(tabId: number, date: string, deadline: number): Promise<ReadWorkDayResponse> {

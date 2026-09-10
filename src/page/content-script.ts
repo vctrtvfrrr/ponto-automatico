@@ -1,13 +1,13 @@
 import { loadAutomation } from '../automation/storage.ts'
 import { decideAttempt } from '../triggers/attempt.ts'
 import { decidePunch, interruptedAttempt } from '../triggers/punch.ts'
-import { CLICK_PUNCH, READ_REGISTRATION, READ_WORK_DAY, type ClickPunchMessage, type ClickPunchResponse, type PageMessage, type ReadWorkDayResponse } from './messages.ts'
-import { decideRegistration, type RegistrationObservation } from './observation.ts'
+import { CLICK_PUNCH, READ_REGISTRATION, READ_WORK_DAY, type ClickPunchMessage, type ClickPunchResponse, type PageMessage, type ReadWorkDayResponse, type RegistrationReport } from './messages.ts'
+import { decideRegistration } from './observation.ts'
 import { findPunchButtons, isLoginPage, readWorkDay } from './readers.ts'
 
 let clickConsumed = false
 
-chrome.runtime.onMessage.addListener((message: PageMessage, _sender, sendResponse: (response: ReadWorkDayResponse | RegistrationObservation | ClickPunchResponse) => void) => {
+chrome.runtime.onMessage.addListener((message: PageMessage, _sender, sendResponse: (response: ReadWorkDayResponse | RegistrationReport | ClickPunchResponse) => void) => {
   if (message?.type === READ_REGISTRATION) {
     sendResponse(readRegistration())
     return
@@ -33,17 +33,23 @@ chrome.runtime.onMessage.addListener((message: PageMessage, _sender, sendRespons
 // Only the copy the current viewport lays out has a box; the other is display
 // none. Visibility is deliberately not a gate: the Attempt's tab is never
 // rendered, and the widget's entry animation leaves visibility hidden there.
+function renderedPunchButtons(): HTMLButtonElement[] {
+  return findPunchButtons(document).filter((button) => button.getClientRects().length > 0)
+}
+
 function punchButton(): HTMLButtonElement | undefined {
-  const rendered = findPunchButtons(document).filter((button) => button.getClientRects().length > 0)
+  const rendered = renderedPunchButtons()
   return rendered.length === 1 ? rendered[0] : undefined
 }
 
-function readRegistration(): RegistrationObservation {
-  if (isLoginPage(document)) return 'login'
-  if (location.pathname !== '/registrar-ponto') return 'missing'
+function readRegistration(): RegistrationReport {
+  const counts = { structural: findPunchButtons(document).length, rendered: renderedPunchButtons().length }
+  if (isLoginPage(document)) return { observation: 'login', ...counts }
+  if (location.pathname !== '/registrar-ponto') return { observation: 'missing', ...counts }
   const button = punchButton()
-  if (!button) return 'missing'
-  return button.matches(':disabled') || button.closest('[aria-disabled="true"]') ? 'disabled' : 'ready'
+  if (!button) return { observation: 'missing', ...counts }
+  const disabled = button.matches(':disabled') || button.closest('[aria-disabled="true"]')
+  return { observation: disabled ? 'disabled' : 'ready', ...counts }
 }
 
 async function clickPunch(message: ClickPunchMessage): Promise<ClickPunchResponse> {
@@ -56,7 +62,7 @@ async function clickPunch(message: ClickPunchMessage): Promise<ClickPunchRespons
   }
   const decision = decidePunch(message.trigger, message.workDay, now)
   if (decision.result !== 'click') return decision
-  const registration = decideRegistration(readRegistration())
+  const registration = decideRegistration(readRegistration().observation)
   if (registration.result !== 'ready') return registration
   punchButton()!.click()
   return { result: 'clicked', at: now.getTime() }

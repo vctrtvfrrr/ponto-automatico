@@ -1,5 +1,6 @@
 import { loadAutomation } from '../automation/storage.ts'
 import { loadSchedule } from '../schedule/storage.ts'
+import type { RegistrationTimeline } from '../page/messages.ts'
 import type { WorkDay } from '../page/readers.ts'
 import { decideAttempt, type AttemptDecision } from '../triggers/attempt.ts'
 import type { DailyTriggers, Trigger } from '../triggers/plan.ts'
@@ -8,7 +9,7 @@ import { closeAttemptTab, performPunch } from './page.ts'
 
 const TRIGGER_PREFIX = 'trigger:'
 
-type Attempt = { at: number; decision: Exclude<AttemptDecision, { result: 'wait' }> | PunchOutcome; tabIds?: number[]; workDay?: WorkDay }
+type Attempt = { at: number; decision: Exclude<AttemptDecision, { result: 'wait' }> | PunchOutcome; tabIds?: number[]; workDay?: WorkDay; registration?: RegistrationTimeline }
 type StoredTrigger = { date: string; trigger: Trigger; attempt?: Attempt; notified?: boolean }
 
 export async function ensureTriggerAlarms(day: DailyTriggers): Promise<void> {
@@ -63,6 +64,9 @@ export async function handleTriggerAlarm(name: string): Promise<void> {
       await chrome.storage.local.set({ [name]: completed })
     }, async (workDay) => {
       completed.attempt!.workDay = workDay
+      await chrome.storage.local.set({ [name]: completed })
+    }, async (registration) => {
+      completed.attempt!.registration = registration
       await chrome.storage.local.set({ [name]: completed })
     })
   }
