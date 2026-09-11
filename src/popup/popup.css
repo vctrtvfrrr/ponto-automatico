@@ -1,0 +1,169 @@
+/* Fixed width: left to size itself, Chrome reflows the popup as the longest
+   message on screen changes. */
+body {
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  line-height: 1.4;
+  margin: 0;
+  overflow-wrap: anywhere;
+  width: 360px;
+}
+
+header {
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-3) var(--space-4);
+}
+
+h1 {
+  display: flex;
+  font-size: var(--font-size-lg);
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0;
+}
+
+#version {
+  color: var(--text-faint);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+}
+
+#date {
+  color: var(--text-muted);
+  display: block;
+  font-size: var(--font-size-sm);
+}
+
+#automation {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  width: 100%;
+}
+
+#automation::before {
+  background: var(--text-faint);
+  border-radius: var(--radius-full);
+  content: '';
+  flex: none;
+  height: 0.55rem;
+  width: 0.55rem;
+}
+
+#automation[aria-checked='true']::before {
+  background: var(--fulfilled);
+}
+
+#automation:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+#timeline {
+  list-style: none;
+  margin: 0;
+  max-height: 24rem;
+  overflow-y: auto;
+  padding: 0;
+}
+
+#timeline li {
+  align-items: baseline;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+}
+
+#timeline li + li {
+  border-top: 1px solid var(--surface-sunken);
+}
+
+#timeline time {
+  font-variant-numeric: tabular-nums;
+}
+
+#timeline .label {
+  font-size: var(--font-size-sm);
+  text-align: right;
+}
+
+[data-state='fulfilled'] {
+  color: var(--fulfilled);
+}
+
+[data-state='awaiting'] {
+  color: var(--awaiting);
+}
+
+[data-state='failed'] {
+  color: var(--failed);
+}
+
+[data-state='disabled'] {
+  color: var(--text-faint);
+}
+
+[data-state='next'] {
+  font-weight: 600;
+}
+
+[data-state='unplanned'] .label,
+[data-state='unverified'] .label {
+  color: var(--text-muted);
+}
+
+#plan-status:not(:empty),
+#read-status:not(:empty),
+#automation-error:not(:empty) {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+}
+
+#automation-error:not(:empty) {
+  color: var(--failed);
+  padding: var(--space-2) 0 0;
+}
+
+footer {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  display: flex;
+  font-size: var(--font-size-sm);
+  gap: var(--space-2);
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+}
+
+footer p {
+  margin: 0;
+}
+
+#refresh {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  padding: var(--space-1) var(--space-2);
+}
+
+#refresh:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}

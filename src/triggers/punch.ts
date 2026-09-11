@@ -1,7 +1,7 @@
 import type { WorkDay } from '../page/readers.ts'
 import type { PageDecision, PageObservation, RegistrationDecision } from '../page/observation.ts'
 import type { AttemptDecision } from './attempt.ts'
-import { localDate, type Trigger } from './plan.ts'
+import { localDate, recognitionWindow, type Trigger } from './plan.ts'
 
 export type PunchDecision =
   | { result: 'click'; workDay: WorkDay }
@@ -12,8 +12,8 @@ export function decidePunch(trigger: Trigger, workDay: WorkDay, now: Date): Punc
   if (workDay.date !== localDate(now) || workDay.date !== localDate(new Date(trigger.at))) {
     return { result: 'date-changed', reason: 'A data da Jornada mudou. Nenhuma Marcação foi criada.' }
   }
-  const window = trigger.window
-  if (!window || !Number.isFinite(window.start) || !Number.isFinite(window.end) || window.start > trigger.at || window.end < trigger.at) {
+  const window = recognitionWindow(trigger)
+  if (!window) {
     return {
       result: 'schedule-unavailable',
       reason: 'Este Gatilho não tem uma faixa de reconhecimento válida. Confira a Jornada e faça a Marcação manualmente. O próximo dia usará o novo planejamento.',

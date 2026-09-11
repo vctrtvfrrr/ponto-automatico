@@ -1,9 +1,10 @@
-import { decideDelivery, describeAlert } from '../alerts/alert.ts'
+import { decideDelivery, describeAlert, PUSH_BACKOFF_MS } from '../alerts/alert.ts'
 import { pushAlert } from '../alerts/ntfy.ts'
+import { loadPushAllowedAt, savePushAllowedAt } from '../alerts/storage.ts'
 import { loadAutomation } from '../automation/storage.ts'
 import { loadSchedule } from '../schedule/storage.ts'
 import { decideAttempt } from '../triggers/attempt.ts'
-import { localDate, type DailyTriggers } from '../triggers/plan.ts'
+import type { DailyTriggers } from '../triggers/plan.ts'
 import { interruptedAttempt } from '../triggers/punch.ts'
 import type { StoredTrigger } from '../triggers/stored.ts'
 import { closeAttemptTab, performPunch } from './page.ts'
@@ -81,14 +82,12 @@ async function finishAttempt(name: string, saved: StoredTrigger): Promise<void> 
   }
   const alert = describeAlert(saved.attempt!.decision, saved.date, saved.trigger.at)
   if (!alert) return
-  const delivery = decideDelivery(saved, localDate(new Date()))
+  const delivery = decideDelivery(saved, new Date(), await loadPushAllowedAt())
 
-  // The push goes first because it answers its own failures and never throws,
-  // so a notification the browser refuses cannot take the push down with it.
-  if (delivery.push && await pushAlert(alert)) {
-    saved.pushed = true
-    await chrome.storage.local.set({ [name]: saved })
-  }
+  // The channels run side by side: a slow push never delays the notification,
+  // and a notification the browser refuses never takes the push down with it.
+  const pushing = delivery.push ? pushAlert(alert, name) : undefined
+
   if (delivery.notify) {
     await chrome.notifications.create(name, {
       type: 'basic',
@@ -98,5 +97,13 @@ async function finishAttempt(name: string, saved: StoredTrigger): Promise<void> 
     })
     saved.notified = true
     await chrome.storage.local.set({ [name]: saved })
+  }
+  if (pushing) {
+    if (await pushing) {
+      saved.pushed = true
+      await chrome.storage.local.set({ [name]: saved })
+    } else {
+      await savePushAllowedAt(Date.now() + PUSH_BACKOFF_MS)
+    }
   }
 }

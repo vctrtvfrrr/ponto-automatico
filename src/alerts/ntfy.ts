@@ -4,20 +4,30 @@ import { loadAlertSettings } from './storage.ts'
 const SERVER = 'https://ntfy.sh'
 const WORK_DAY = 'https://app2.pontomais.com.br/meu-ponto'
 
+// Well under the 30 s Chrome gives a pending fetch before it tears the worker
+// down, and short enough that an unreachable ntfy.sh never holds the serialized
+// queue that also runs the next Attempt.
+const TIMEOUT_MS = 10_000
+
 // No host permission: the POST rides on the `access-control-allow-origin: *`
 // that ntfy.sh serves, which is part of their product. See ADR-0003.
-export async function pushAlert(alert: Alert): Promise<boolean> {
-  const topic = (await loadAlertSettings())?.topic
-  if (!topic) return false
-
+export async function pushAlert(alert: Alert, id: string): Promise<boolean> {
   try {
-    const response = await fetch(`${SERVER}/${topic}`, {
+    const topic = (await loadAlertSettings())?.topic
+    if (!topic) return false
+
+    const response = await fetch(`${SERVER}/${encodeURIComponent(topic)}`, {
       method: 'POST',
+      signal: AbortSignal.timeout(TIMEOUT_MS),
       headers: {
         Title: encodeHeader(alert.title),
         Priority: alert.priority,
         Tags: alert.tags.join(','),
         Click: WORK_DAY,
+        // The identity the browser channel already gives the Alert. A resend
+        // after a lost response then replaces the earlier push in the app
+        // instead of stacking a second one. ntfy refuses a colon here.
+        'X-Sequence-ID': id.replaceAll(':', '-'),
       },
       body: alert.message,
     })

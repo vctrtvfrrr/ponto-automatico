@@ -18,9 +18,15 @@ O tópico é sugerido pela própria extensão quando ainda não há um salvo: o 
 
 ## Consequences
 
-**O push só acontece para Gatilho cuja data é a de hoje.** Nada apaga os Gatilhos gravados, e a rotina que garante os alarmes percorre todos eles a cada despertar do worker. Sem essa regra, um `ntfy.sh` inacessível faria a extensão disparar um `POST` por Gatilho de cada dia passado a cada despertar, o que o limite de uma requisição a cada dez segundos do serviço responderia com banimento. A mesma regra resolve a migração: os Gatilhos já gravados não são de hoje, então ligar o recurso não empurra o histórico.
+**O push só acontece para Gatilho cuja data é a de hoje.** Nada apaga os Gatilhos gravados, e a rotina que garante os alarmes percorre todos eles a cada despertar do worker. Sem essa regra, um `ntfy.sh` inacessível faria a extensão disparar um `POST` por Gatilho de cada dia passado a cada despertar. A mesma regra resolve a migração: os Gatilhos já gravados não são de hoje, então ligar o recurso não empurra o histórico.
 
-**Um push que não saiu até a virada do dia não sai nunca.** É a consequência aceita da regra acima. O Aviso do navegador correspondente sai do mesmo jeito, porque cada canal tem o seu próprio marcador de entrega.
+**Excluir os dias passados não basta, e uma falha empurra um piso compartilhado.** A regra acima limita quantos Gatilhos um despertar pode empurrar, não quantos despertares acontecem: os pendentes de hoje são retentados a cada despertar, e abrir o popup provoca um. O volume passaria a seguir o número de despertares. O `ntfy.sh` documenta 60 requisições por visitante com reposição de uma a cada cinco segundos, e reforça esse limite com banimento. Por isso um push que falha grava um instante a partir do qual qualquer push é permitido de novo, cinco minutos à frente. Com o serviço fora do ar, o custo cai para uma requisição por janela em vez de uma por Gatilho pendente por despertar.
+
+**O envio tem prazo.** O `fetch` cancela em dez segundos. Ele roda na mesma fila serializada que conduz as Tentativas, e o Chrome derruba o worker quando uma resposta demora mais de trinta segundos; sem prazo, um `ntfy.sh` lento seguraria o Gatilho seguinte até perder a tolerância.
+
+**Um push que não saiu até a virada do dia não sai nunca.** É a consequência aceita da primeira regra. O Aviso do navegador correspondente sai do mesmo jeito, porque cada canal tem o seu próprio marcador de entrega.
+
+**A entrega não é exatamente uma vez.** Se o servidor aceitar o `POST` e a resposta se perder, o marcador local não é gravado e o próximo despertar publica de novo. O envio carrega no `X-Sequence-ID` a mesma identidade que a notificação do navegador usa — a chave do Gatilho, com os dois-pontos trocados por hífen, porque o `ntfy.sh` os recusa —, e com isso o app substitui a mensagem anterior em vez de empilhar uma segunda. Isso reduz a duplicação visível; não a elimina. Gravar o marcador antes do `POST` apenas trocaria duplicação por perda.
 
 **O conteúdo do Aviso trafega em claro para um terceiro.** O `ntfy.sh` vê o título, a mensagem e o horário de cada Marcação. Quem souber o nome do tópico também vê. É o preço de um canal sem servidor próprio e sem conta.
 

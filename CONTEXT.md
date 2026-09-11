@@ -31,3 +31,7 @@ _Avoid_: notificação, alerta, push
 **Exceção** (`SkipDate`):
 Uma data em que nenhum Gatilho existe, cadastrada pelo usuário. Cobre feriado, folga, férias, atestado e recesso indistintamente: o domínio não modela o motivo, apenas a ausência.
 _Avoid_: feriado, folga, bloqueio
+
+**Automação** (`Automation`):
+O interruptor único do usuário sobre a criação de Marcações. Desligada, nenhum Gatilho existe e nenhuma Tentativa ocorre; ao religar, os Gatilhos cujo instante já passou permanecem sem efeito — a Automação nunca recupera o que ficou para trás.
+_Avoid_: extensão, robô, agendador, piloto automático

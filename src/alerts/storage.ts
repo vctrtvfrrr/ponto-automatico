@@ -14,3 +14,18 @@ export async function loadAlertSettings(): Promise<AlertSettings | undefined> {
 
   return { topic: alerts.topic }
 }
+
+// Runtime state, in a key of its own: the Options screen replaces the whole
+// `alerts` object on every save.
+export const PUSH_ALLOWED_AT_KEY = 'pushAllowedAt'
+
+export async function loadPushAllowedAt(): Promise<number> {
+  const stored = await chrome.storage.local.get(PUSH_ALLOWED_AT_KEY)
+  const at: unknown = stored[PUSH_ALLOWED_AT_KEY]
+
+  return typeof at === 'number' && Number.isFinite(at) ? at : 0
+}
+
+export async function savePushAllowedAt(at: number): Promise<void> {
+  await chrome.storage.local.set({ [PUSH_ALLOWED_AT_KEY]: at })
+}

@@ -34,6 +34,14 @@ export function localDate(now: Date): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
+// A Trigger drawn by an older version has no window, and one drawn around a
+// changed Schedule may hold `at` outside it. Neither can be reconciled.
+export function recognitionWindow(trigger: Trigger): { start: number; end: number } | undefined {
+  const window = trigger.window
+  if (!window || !Number.isFinite(window.start) || !Number.isFinite(window.end)) return undefined
+  return window.start <= trigger.at && trigger.at <= window.end ? window : undefined
+}
+
 export function nextTrigger(day: DailyTriggers, now: Date): Trigger | undefined {
   return day.triggers.find(({ at }) => at >= now.getTime())
 }
