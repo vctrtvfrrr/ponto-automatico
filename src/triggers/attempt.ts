@@ -5,7 +5,7 @@ export type AttemptDecision =
   | { result: 'wait' }
   | { result: 'ready' }
   | { result: 'disabled' }
-  | { result: 'expired'; notification: string }
+  | { result: 'expired'; reason: string }
 
 export function decideAttempt(
   trigger: Trigger,
@@ -20,7 +20,7 @@ export function decideAttempt(
   if (now.getTime() > trigger.at + toleranceMinutes * 60_000) {
     return {
       result: 'expired',
-      notification: 'A janela de tolerância do Gatilho encerrou. Nenhuma Marcação foi criada.',
+      reason: 'A janela de tolerância do Gatilho encerrou. Nenhuma Marcação foi criada.',
     }
   }
   return { result: 'ready' }

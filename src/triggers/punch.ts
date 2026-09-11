@@ -6,17 +6,17 @@ import { localDate, type Trigger } from './plan.ts'
 export type PunchDecision =
   | { result: 'click'; workDay: WorkDay }
   | { result: 'already-filled'; workDay: WorkDay }
-  | { result: 'schedule-unavailable' | 'date-changed'; notification: string }
+  | { result: 'schedule-unavailable' | 'date-changed'; reason: string }
 
 export function decidePunch(trigger: Trigger, workDay: WorkDay, now: Date): PunchDecision {
   if (workDay.date !== localDate(now) || workDay.date !== localDate(new Date(trigger.at))) {
-    return { result: 'date-changed', notification: 'A data da Jornada mudou. Nenhuma Marcação foi criada.' }
+    return { result: 'date-changed', reason: 'A data da Jornada mudou. Nenhuma Marcação foi criada.' }
   }
   const window = trigger.window
   if (!window || !Number.isFinite(window.start) || !Number.isFinite(window.end) || window.start > trigger.at || window.end < trigger.at) {
     return {
       result: 'schedule-unavailable',
-      notification: 'Este Gatilho não tem uma faixa de reconhecimento válida. Confira a Jornada e faça a Marcação manualmente. O próximo dia usará o novo planejamento.',
+      reason: 'Este Gatilho não tem uma faixa de reconhecimento válida. Confira a Jornada e faça a Marcação manualmente. O próximo dia usará o novo planejamento.',
     }
   }
   const filled = workDay.punches.some((time) => {
@@ -28,9 +28,9 @@ export function decidePunch(trigger: Trigger, workDay: WorkDay, now: Date): Punc
 }
 
 export type ConfirmationDecision =
-  | { result: 'confirmed'; workDay: WorkDay }
+  | { result: 'confirmed'; workDay: WorkDay; punch: string }
   | { result: 'confirming' }
-  | { result: 'unconfirmed'; notification: string }
+  | { result: 'unconfirmed'; reason: string }
 
 export type PunchOutcome =
   | Exclude<AttemptDecision, { result: 'wait' | 'ready' }>
@@ -38,12 +38,12 @@ export type PunchOutcome =
   | Exclude<PunchDecision, { result: 'click' }>
   | Exclude<RegistrationDecision, { result: 'ready' }>
   | Exclude<ConfirmationDecision, { result: 'confirming' }>
-  | { result: 'interrupted' | 'stale-observation'; notification: string }
+  | { result: 'interrupted' | 'stale-observation'; reason: string }
 
 export function interruptedAttempt(): PunchOutcome {
   return {
     result: 'interrupted',
-    notification: 'A Tentativa foi interrompida e não será repetida. Confira a Jornada no PontoMais antes de marcar manualmente.',
+    reason: 'A Tentativa foi interrompida e não será repetida. Confira a Jornada no PontoMais antes de marcar manualmente.',
   }
 }
 
@@ -57,15 +57,15 @@ export function decideConfirmation(
   if (now.getTime() <= deadline && observation.status === 'read' && observation.workDay.date === before.date) {
     const workDay = observation.workDay
     const clickMinute = Math.floor(clickedAt / 60_000) * 60_000
-    const newPunch = workDay.punches.some((time) => {
+    const punch = workDay.punches.find((time) => {
       const at = new Date(`${workDay.date}T${time}:00`).getTime()
       return !before.punches.includes(time) && at >= clickMinute && at <= now.getTime()
     })
-    if (newPunch && before.punches.every((time) => workDay.punches.includes(time))) return { result: 'confirmed', workDay }
+    if (punch && before.punches.every((time) => workDay.punches.includes(time))) return { result: 'confirmed', workDay, punch }
   }
   if (now.getTime() < deadline) return { result: 'confirming' }
   return {
     result: 'unconfirmed',
-    notification: 'Não foi possível confirmar a Marcação. O clique não será repetido. Confira a Jornada no PontoMais antes de marcar manualmente.',
+    reason: 'Não foi possível confirmar a Marcação. O clique não será repetido. Confira a Jornada no PontoMais antes de marcar manualmente.',
   }
 }

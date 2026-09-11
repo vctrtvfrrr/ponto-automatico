@@ -1,6 +1,6 @@
 import { WEEKDAYS, type Schedule, type Weekday } from './schedule.ts'
 
-const STORAGE_KEY = 'schedule'
+export const SCHEDULE_KEY = 'schedule'
 
 const REFERENCE_WORKDAY = ['08:30', '12:00', '13:30', '18:00']
 
@@ -22,17 +22,13 @@ export const DEFAULT_SCHEDULE: Schedule = {
 
 // `local`, never `session`: a Schedule has to survive a browser restart.
 export async function loadSchedule(): Promise<Schedule> {
-  const stored = await chrome.storage.local.get(STORAGE_KEY)
-  const schedule: unknown = stored[STORAGE_KEY]
+  const stored = await chrome.storage.local.get(SCHEDULE_KEY)
+  const schedule: unknown = stored[SCHEDULE_KEY]
 
   if (schedule === undefined) return DEFAULT_SCHEDULE
   if (!isSchedule(schedule)) throw new Error('A Escala armazenada tem formato inválido.')
 
   return schedule
-}
-
-export async function saveSchedule(schedule: Schedule): Promise<void> {
-  await chrome.storage.local.set({ [STORAGE_KEY]: schedule })
 }
 
 function isSchedule(value: unknown): value is Schedule {

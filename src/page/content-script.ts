@@ -58,7 +58,7 @@ async function clickPunch(message: ClickPunchMessage): Promise<ClickPunchRespons
   const attempt = decideAttempt(message.trigger, message.toleranceMinutes, now, automation)
   if (attempt.result !== 'ready' && attempt.result !== 'wait') return attempt
   if (attempt.result === 'wait' || now.getTime() < message.observedAt || now.getTime() - message.observedAt > 2_000) {
-    return { result: 'stale-observation', notification: 'A leitura da Jornada ficou desatualizada antes do clique. Nenhuma Marcação foi criada.' }
+    return { result: 'stale-observation', reason: 'A leitura da Jornada ficou desatualizada antes do clique. Nenhuma Marcação foi criada.' }
   }
   const decision = decidePunch(message.trigger, message.workDay, now)
   if (decision.result !== 'click') return decision

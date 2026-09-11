@@ -24,6 +24,10 @@ _Avoid_: alarme, timer, agendamento
 Uma execução de um Gatilho. Pode terminar sem Marcação, e frequentemente termina — a distinção entre Gatilho e Tentativa separa "estava previsto" de "tentou e não conseguiu".
 _Avoid_: execução, disparo, run
 
+**Aviso** (`Alert`):
+A mensagem que a extensão emite sobre o desfecho de uma Tentativa. Existe independentemente de onde é entregue, e uma Tentativa emite no máximo um. Nem todo desfecho gera Aviso: o que era previsto e não pediu ação — uma Marcação que já existia na faixa — é silencioso.
+_Avoid_: notificação, alerta, push
+
 **Exceção** (`SkipDate`):
 Uma data em que nenhum Gatilho existe, cadastrada pelo usuário. Cobre feriado, folga, férias, atestado e recesso indistintamente: o domínio não modela o motivo, apenas a ausência.
 _Avoid_: feriado, folga, bloqueio

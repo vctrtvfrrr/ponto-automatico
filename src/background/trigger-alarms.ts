@@ -1,16 +1,14 @@
+import { decideDelivery, describeAlert } from '../alerts/alert.ts'
+import { pushAlert } from '../alerts/ntfy.ts'
 import { loadAutomation } from '../automation/storage.ts'
 import { loadSchedule } from '../schedule/storage.ts'
-import type { RegistrationTimeline } from '../page/messages.ts'
-import type { WorkDay } from '../page/readers.ts'
-import { decideAttempt, type AttemptDecision } from '../triggers/attempt.ts'
-import type { DailyTriggers, Trigger } from '../triggers/plan.ts'
-import { interruptedAttempt, type PunchOutcome } from '../triggers/punch.ts'
+import { decideAttempt } from '../triggers/attempt.ts'
+import { localDate, type DailyTriggers } from '../triggers/plan.ts'
+import { interruptedAttempt } from '../triggers/punch.ts'
+import type { StoredTrigger } from '../triggers/stored.ts'
 import { closeAttemptTab, performPunch } from './page.ts'
 
 const TRIGGER_PREFIX = 'trigger:'
-
-type Attempt = { at: number; decision: Exclude<AttemptDecision, { result: 'wait' }> | PunchOutcome; tabIds?: number[]; workDay?: WorkDay; registration?: RegistrationTimeline }
-type StoredTrigger = { date: string; trigger: Trigger; attempt?: Attempt; notified?: boolean }
 
 export async function ensureTriggerAlarms(day: DailyTriggers): Promise<void> {
   const stored = await chrome.storage.local.get(null)
@@ -81,14 +79,24 @@ async function finishAttempt(name: string, saved: StoredTrigger): Promise<void> 
     delete saved.attempt!.tabIds
     await chrome.storage.local.set({ [name]: saved })
   }
-  const decision = saved.attempt!.decision
-  if (!('notification' in decision) || saved.notified) return
+  const alert = describeAlert(saved.attempt!.decision, saved.date, saved.trigger.at)
+  if (!alert) return
+  const delivery = decideDelivery(saved, localDate(new Date()))
 
-  await chrome.notifications.create(name, {
-    type: 'basic',
-    iconUrl: chrome.runtime.getURL(chrome.runtime.getManifest().icons!['128']!),
-    title: decision.result === 'expired' ? 'Ponto Automático — Gatilho vencido' : 'Ponto Automático — Falha na Tentativa',
-    message: `Gatilho de ${saved.date}, ${new Date(saved.trigger.at).toLocaleTimeString('pt-BR')}. ${decision.notification}`,
-  })
-  await chrome.storage.local.set({ [name]: { ...saved, notified: true } })
+  // The push goes first because it answers its own failures and never throws,
+  // so a notification the browser refuses cannot take the push down with it.
+  if (delivery.push && await pushAlert(alert)) {
+    saved.pushed = true
+    await chrome.storage.local.set({ [name]: saved })
+  }
+  if (delivery.notify) {
+    await chrome.notifications.create(name, {
+      type: 'basic',
+      iconUrl: chrome.runtime.getURL(chrome.runtime.getManifest().icons!['128']!),
+      title: alert.title,
+      message: alert.message,
+    })
+    saved.notified = true
+    await chrome.storage.local.set({ [name]: saved })
+  }
 }

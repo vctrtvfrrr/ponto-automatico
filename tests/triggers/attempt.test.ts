@@ -39,7 +39,7 @@ test('waits one millisecond before the tolerance window opens', () => {
 test('aborts and explains the failure one millisecond after the tolerance window closes', () => {
   expect(decideAttempt(trigger, 15, new Date(2026, 8, 9, 8, 45, 0, 1))).toEqual({
     result: 'expired',
-    notification: 'A janela de tolerância do Gatilho encerrou. Nenhuma Marcação foi criada.',
+    reason: 'A janela de tolerância do Gatilho encerrou. Nenhuma Marcação foi criada.',
   })
 })
 

@@ -24,13 +24,13 @@ test.each([[], ['08:32'], ['13:14'], ['13:46']])('allows a Punch when none is in
 
 test('does not guess the recognition window of a Trigger saved by an older version', () => {
   expect(decidePunch({ slot: 2, at: trigger.at }, { date: '2026-09-09', punches: [] }, now)).toMatchObject({
-    result: 'schedule-unavailable', notification: expect.any(String),
+    result: 'schedule-unavailable', reason: expect.any(String),
   })
 })
 
 test('does not create a Punch for yesterday after the date changes during an Attempt', () => {
   expect(decidePunch(trigger, { date: '2026-09-09', punches: [] }, new Date(2026, 8, 10))).toMatchObject({
-    result: 'date-changed', notification: expect.any(String),
+    result: 'date-changed', reason: expect.any(String),
   })
 })
 
@@ -44,7 +44,7 @@ test('confirms a new Punch read after the click, including a late Attempt outsid
   const clickedAt = at(13, 50) + 15_000
 
   expect(decideConfirmation(before, { status: 'read', workDay }, clickedAt, clickedAt + 60_000, new Date(clickedAt + 2_000)))
-    .toEqual({ result: 'confirmed', workDay })
+    .toEqual({ result: 'confirmed', workDay, punch: '13:50' })
 })
 
 test.each<PageObservation>([
@@ -61,7 +61,7 @@ test.each<PageObservation>([
   expect(decideConfirmation(before, observation, trigger.at, deadline, new Date(deadline - 1))).toEqual({ result: 'confirming' })
   expect(decideConfirmation(before, observation, trigger.at, deadline, new Date(deadline))).toEqual({
     result: 'unconfirmed',
-    notification: 'Não foi possível confirmar a Marcação. O clique não será repetido. Confira a Jornada no PontoMais antes de marcar manualmente.',
+    reason: 'Não foi possível confirmar a Marcação. O clique não será repetido. Confira a Jornada no PontoMais antes de marcar manualmente.',
   })
 })
 

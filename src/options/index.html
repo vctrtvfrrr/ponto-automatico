@@ -24,6 +24,15 @@
         padding: 0.4rem;
         width: 100%;
       }
+      .prefixed {
+        align-items: baseline;
+        display: flex;
+        gap: 0.35rem;
+      }
+      .prefixed .prefix {
+        color: #555;
+        flex: none;
+      }
       .hint {
         color: #555;
         font-size: 0.875rem;
@@ -77,6 +86,20 @@
         Exceções <span class="hint">— uma data AAAA-MM-DD por linha; o dia inteiro é pulado</span>
       </label>
       <textarea id="skip-dates" rows="5"></textarea>
+
+      <h2>Avisos</h2>
+      <p class="hint">
+        Todo Aviso também sai como push no celular, pelo app do ntfy. Assine o tópico abaixo no app
+        uma única vez. Um campo vazio desliga o push.
+      </p>
+
+      <label for="topic">
+        Tópico do ntfy <span class="hint">— o nome do tópico é a senha: quem o conhece lê seus horários</span>
+      </label>
+      <div class="prefixed">
+        <span class="prefix">https://ntfy.sh/</span>
+        <input id="topic" type="text" />
+      </div>
 
       <button type="submit">Salvar</button>
     </form>

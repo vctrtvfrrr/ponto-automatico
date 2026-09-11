@@ -7,7 +7,7 @@ test('grants host access to app2.pontomais.com.br and nothing else', () => {
   expect(declared.host_permissions).toEqual(['https://app2.pontomais.com.br/*'])
 })
 
-test('declares persistence, Trigger scheduling and failure notifications', () => {
+test('declares persistence, Trigger scheduling and the browser channel for Alerts', () => {
   expect(declared.permissions).toEqual(['storage', 'alarms', 'notifications'])
 })
 

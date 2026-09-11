@@ -38,7 +38,7 @@ function feedback(): { tone: string; text: string } {
 test('confirms a Schedule that reached the storage', async () => {
   await save({ '#times-1': WORKDAY, '#deviation': '15', '#tolerance': '15' })
 
-  expect(feedback()).toEqual({ tone: 'saved', text: 'Escala salva.' })
+  expect(feedback()).toEqual({ tone: 'saved', text: 'Opções salvas.' })
 })
 
 test('never leaves the earlier confirmation standing when the write is refused', async () => {
@@ -50,8 +50,8 @@ test('never leaves the earlier confirmation standing when the write is refused',
   await save({ '#tolerance': '30' })
 
   expect(feedback().tone).toBe('errors')
-  expect(feedback().text).not.toContain('Escala salva.')
-  expect(feedback().text).toContain('não foi salva')
+  expect(feedback().text).not.toContain('Opções salvas.')
+  expect(feedback().text).toContain('Nada foi salvo')
   expect(feedback().text).toContain('QUOTA_BYTES quota exceeded')
 })
 
@@ -76,6 +76,7 @@ test.each(['saved', 'errors'])('locks editing until a pending write ends with %s
   expect(store).toHaveBeenCalledTimes(1)
   expect(store).toHaveBeenCalledWith({
     schedule: expect.objectContaining({ times: expect.objectContaining({ 1: WORKDAY.split(', ') }) }),
+    alerts: { topic: expect.stringMatching(/^ponto-automatico-[A-Za-z0-9]{16}$/) },
   })
 
   finish()
@@ -89,7 +90,7 @@ test.each(['saved', 'errors'])('locks editing until a pending write ends with %s
 
 test.each([
   '#times-0', '#times-1', '#times-2', '#times-3', '#times-4', '#times-5', '#times-6',
-  '#deviation', '#tolerance', '#skip-dates',
+  '#deviation', '#tolerance', '#skip-dates', '#topic',
 ])('clears the saved confirmation when %s is edited', async (selector) => {
   await save()
 
@@ -110,4 +111,50 @@ test('rejects invalid edits without writing and leaves the form editable', async
   expect(feedback().tone).toBe('errors')
   expect(document.querySelector<HTMLInputElement>('#times-1')!.disabled).toBe(false)
   expect(document.querySelector<HTMLButtonElement>('button')!.disabled).toBe(false)
+})
+
+test('suggests a topic no one can guess, shown under a fixed ntfy.sh prefix', async () => {
+  expect(document.querySelector('.prefixed .prefix')!.textContent).toBe('https://ntfy.sh/')
+
+  const drawn = new Set<string>()
+  for (let round = 0; round < 20; round++) {
+    vi.resetModules()
+    await import('../../src/options/options.ts')
+    drawn.add(document.querySelector<HTMLInputElement>('#topic')!.value)
+  }
+
+  expect(drawn.size).toBe(20)
+  for (const topic of drawn) expect(topic).toMatch(/^ponto-automatico-[A-Za-z0-9]{16}$/)
+})
+
+test('saves the Schedule and the topic in a single write', async () => {
+  const store = vi.fn(write)
+  write = store
+
+  await save({ '#times-1': WORKDAY, '#deviation': '15', '#tolerance': '15', '#topic': 'meu-topico_1' })
+
+  expect(store).toHaveBeenCalledTimes(1)
+  expect(store).toHaveBeenCalledWith({ schedule: expect.anything(), alerts: { topic: 'meu-topico_1' } })
+})
+
+test('keeps an emptied topic empty instead of suggesting one again', async () => {
+  const store = vi.fn(write)
+  write = store
+
+  await save({ '#topic': '  ' })
+
+  expect(feedback().tone).toBe('saved')
+  expect(store).toHaveBeenCalledWith(expect.objectContaining({ alerts: { topic: '' } }))
+})
+
+test.each(['meu topico', 'meu/topico', 'á', 'x'.repeat(65)])('refuses the topic %j without writing anything', async (topic) => {
+  const store = vi.fn(async () => {})
+  write = store
+
+  await save({ '#topic': topic })
+
+  expect(store).not.toHaveBeenCalled()
+  expect(feedback().tone).toBe('errors')
+  expect(feedback().text).toContain('não é válido')
+  expect(feedback().text).toContain('letras, números, hífen e sublinhado')
 })

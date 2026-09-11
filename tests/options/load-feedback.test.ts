@@ -46,6 +46,17 @@ test('keeps the form locked until the stored Schedule has loaded', async () => {
   expect(set).not.toHaveBeenCalled()
 })
 
+test('opens a stored topic for editing, and an emptied one as the push turned off', async () => {
+  get.mockResolvedValue({ schedule: DEFAULT_SCHEDULE, alerts: { topic: 'ponto-automatico-abc' } })
+  await import('../../src/options/options.ts')
+  expect(document.querySelector<HTMLInputElement>('#topic')!.value).toBe('ponto-automatico-abc')
+
+  vi.resetModules()
+  get.mockResolvedValue({ schedule: DEFAULT_SCHEDULE, alerts: { topic: '' } })
+  await import('../../src/options/options.ts')
+  expect(document.querySelector<HTMLInputElement>('#topic')!.value).toBe('')
+})
+
 test('opens the reference Schedule for editing on first use without saving it', async () => {
   get.mockResolvedValue({})
 
@@ -64,7 +75,7 @@ test.each(['incompatible', 'null', 'refused'])('blocks editing after a %s read w
 
   const feedback = document.querySelector('#feedback')!
   expect(feedback.className).toBe('errors')
-  expect(feedback.textContent).toContain('Não foi possível carregar a Escala')
+  expect(feedback.textContent).toContain('Não foi possível carregar as opções')
   expect(feedback.textContent).toContain('recarregue a página')
   expect(feedback.textContent).toContain(failure === 'refused' ? 'Storage unavailable' : 'formato inválido')
   expect(controls().every((control) => control.disabled)).toBe(true)

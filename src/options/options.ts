@@ -1,5 +1,7 @@
+import { ALERTS_KEY, loadAlertSettings, type AlertSettings } from '../alerts/storage.ts'
+import { suggestTopic, validateTopic, type TopicError } from '../alerts/topic.ts'
 import { WEEKDAYS, type Schedule, type ScheduleError, type Weekday } from '../schedule/schedule.ts'
-import { loadSchedule, saveSchedule } from '../schedule/storage.ts'
+import { loadSchedule, SCHEDULE_KEY } from '../schedule/storage.ts'
 import { validateSchedule } from '../schedule/validate.ts'
 
 const WEEKDAY_NAMES: Record<Weekday, string> = {
@@ -16,6 +18,7 @@ const form = document.querySelector<HTMLFormElement>('#schedule')!
 const deviationField = document.querySelector<HTMLInputElement>('#deviation')!
 const toleranceField = document.querySelector<HTMLInputElement>('#tolerance')!
 const skipDatesField = document.querySelector<HTMLTextAreaElement>('#skip-dates')!
+const topicField = document.querySelector<HTMLInputElement>('#topic')!
 const feedback = document.querySelector<HTMLElement>('#feedback')!
 
 const { name: extensionName, version } = chrome.runtime.getManifest()
@@ -34,10 +37,11 @@ form.addEventListener('submit', async (event) => {
   if (!editable) return
 
   const schedule = read()
-  const errors = validateSchedule(schedule)
+  const alerts: AlertSettings = { topic: topicField.value.trim() }
+  const errors = [...validateSchedule(schedule).map(describe), ...validateTopic(alerts.topic).map(describeTopic)]
 
   if (errors.length > 0) {
-    report('errors', 'A Escala não foi salva. Corrija o que está abaixo.', errors.map(describe))
+    report('errors', 'Nada foi salvo. Corrija o que está abaixo.', errors)
     return
   }
 
@@ -45,10 +49,11 @@ form.addEventListener('submit', async (event) => {
   report('saving', 'Salvando…', [])
 
   try {
-    await saveSchedule(schedule)
-    report('saved', 'Escala salva.', [])
+    // One write, so a refusal never leaves half the screen stored.
+    await chrome.storage.local.set({ [SCHEDULE_KEY]: schedule, [ALERTS_KEY]: alerts })
+    report('saved', 'Opções salvas.', [])
   } catch (refusal) {
-    report('errors', 'A Escala não foi salva: o armazenamento recusou a gravação.', [
+    report('errors', 'Nada foi salvo: o armazenamento recusou a gravação.', [
       refusal instanceof Error ? refusal.message : String(refusal),
     ])
   } finally {
@@ -57,12 +62,12 @@ form.addEventListener('submit', async (event) => {
 })
 
 try {
-  fill(await loadSchedule())
+  fill(await loadSchedule(), await loadAlertSettings())
   setEditable(true)
 } catch (failure) {
   report(
     'errors',
-    'Não foi possível carregar a Escala. A edição está bloqueada; recarregue a página para tentar novamente.',
+    'Não foi possível carregar as opções. A edição está bloqueada; recarregue a página para tentar novamente.',
     [failure instanceof Error ? failure.message : String(failure)],
   )
 }
@@ -98,7 +103,7 @@ function buildTimeFields(): Record<Weekday, HTMLInputElement> {
   return fields
 }
 
-function fill(schedule: Schedule): void {
+function fill(schedule: Schedule, alerts: AlertSettings | undefined): void {
   for (const weekday of WEEKDAYS) {
     timeFields[weekday].value = schedule.times[weekday].join(', ')
   }
@@ -106,6 +111,7 @@ function fill(schedule: Schedule): void {
   deviationField.value = String(schedule.deviationMinutes)
   toleranceField.value = String(schedule.toleranceMinutes)
   skipDatesField.value = schedule.skipDates.join('\n')
+  topicField.value = alerts?.topic ?? suggestTopic()
 }
 
 function read(): Schedule {
@@ -149,6 +155,13 @@ function report(tone: 'errors' | 'saved' | 'saving', heading: string, details: s
 
   feedback.className = tone
   feedback.replaceChildren(title, list)
+}
+
+function describeTopic(error: TopicError): string {
+  switch (error.kind) {
+    case 'malformed-topic':
+      return `Tópico "${error.value}" não é válido. Use de 1 a 64 caracteres entre letras, números, hífen e sublinhado, sem barras nem espaços.`
+  }
 }
 
 function describe(error: ScheduleError): string {
